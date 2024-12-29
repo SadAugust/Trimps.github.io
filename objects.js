@@ -2629,7 +2629,7 @@ var autoBattle = {
                 return healthAmt;
             },
             explodeDmg: function(){
-                var damageAmt = autoBattle.trimp.dmgTaken;
+                var damageAmt = autoBattle.enemy.dmgTaken;
                 if (autoBattle.items.Doppelganger_Diadem.equipped && autoBattle.trimp.doppLives == 1) damageAmt *= 2;
                 return damageAmt;
             },

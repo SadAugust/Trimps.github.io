@@ -13152,7 +13152,7 @@ function getSpireStory(spireNum, row, getAll){
 		},
 		spireU21: {
 			r1: "Scruffy congratulates you on the first step taken on the long journey through this Spire. Your Trimps already feel a little bit stronger!",
-			r5: "Your Trimps have a simultaneous coughing fit as Spores erupt from that Natural enemy and fill the room. You hear Stuffy attempt evil laughter on the Floor above you, but it honestly humors you more than it does intimidate. This combined with the effect of the Spores causes you to burst out laughging, and you hear an embarrassed Stuffy run further up the Spire.",
+			r5: "Your Trimps have a simultaneous coughing fit as Spores erupt from that Natural enemy and fill the room. You hear Stuffy attempt evil laughter on the Floor above you, but it honestly humors you more than it does intimidate. This combined with the effect of the Spores causes you to burst out laughing, and you hear an embarrassed Stuffy run further up the Spire.",
 			r10: "Scruffy lets you know that you're one tenth of one tenth of the way to the top. You consider finally giving him that lesson he's been asking for on multiplication of fractions but decide now is probably not the time.",
 			r15: "Another Natural enemy and another stack of the Spores. Your Trimps aren't acting quite as bothered by this one, but they definitely seem to have gotten weaker. Scruffy reminds you that at least there were only two Natural enemies on this Floor and they're both dead. Just gotta get to the next Floor to get out of this cloud, and your Trimps strength should fully return!",
 			r50: "You're halfway through the first Floor! Stuffy doesn't stand a chance.",
