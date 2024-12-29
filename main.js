@@ -1064,6 +1064,9 @@ function load(saveString, autoLoad, fromPf) {
 		getHazardParityMult();
 		getHazardGammaBonus();
 	}
+	if (compareVersion([5,10,0], oldStringVersion)){
+		if (playerSpire.rowsAllowed >= 20) giveSingleAchieve("Power Tower");
+	}
 	//End compatibility
 	//Test server only
 
@@ -1172,7 +1175,7 @@ function load(saveString, autoLoad, fromPf) {
 	if (challengeActive("Balance") || game.global.challengeActive == "Unbalance"){
 		updateBalanceStacks();
 	}
-	if (game.global.novaMutStacks > 0) u2Mutations.types.Nova.drawStacks();
+	u2Mutations.checkStacks();
 	if (game.global.spireActive) handleExitSpireBtn();
 	game.options.displayed = false;
 	game.options.menu.barOutlines.onToggle();
@@ -4037,7 +4040,7 @@ function rewardResource(what, baseAmt, level, checkMapLootScale, givePercentage)
 			amt *= 400;
 			if (u2Mutations.tree.AllRadon.purchased) amt *= 1.5;
 		}
-
+		amt *= u2SpireBonuses.basics();
 	}
 	if (givePercentage > 0) amt *= givePercentage;
 	amt = Math.floor(amt);
@@ -6492,7 +6495,8 @@ function getHazardGammaBonus(heirloom){
 	if (!heirloom || heirloom.type != "Shield" || heirloom.rarity < 10) return 0;
 	var spent = getTotalHeirloomRefundValue(heirloom,true);
 	spent += 1e6
-	var mult = (heirloom.rarity == 11) ? 10000 : 4000;
+	var mult = (heirloom.rarity >= 11) ? 10000 : 4000;
+	if (heirloom.rarity >= 12) mult *= Math.pow(1.5, (heirloom.rarity - 11));
 	var bonus = (log10(spent) * mult);
 	if (equipped) game.global.gammaMult = bonus;
 	return bonus;
@@ -7539,7 +7543,8 @@ function createHeirloom(zone, fromBones, spireCore, forceBest){
 	//Heirloom configuration
 	//{name: "", type: "", rarity: #, mods: [[ModName, value, createdStepsFromCap, upgradesPurchased, seed]]}
 	var buildHeirloom = {id: (game.stats.totalHeirlooms.valueTotal + game.stats.totalHeirlooms.value), nuMod: 1, name: name, type: type, repSeed: getRandomIntSeeded(seed++, 1, 10e6), rarity: rarity, mods: []};
-	buildHeirloom.icon = ((type == "Core") ? 'adjust' : (type == "Shield") ? '*shield3' : 'grain')
+	if (buildHeirloom.rarity == 12) buildHeirloom.icon = (type == "Shield") ? "*qrcode2" : "*i-cursor";
+	else buildHeirloom.icon = ((type == "Core") ? 'adjust' : (type == "Shield") ? '*shield3' : 'grain')
 	var x = 0;
 	if (!game.heirlooms.canReplaceMods[rarity]){
 		x++;
@@ -7566,6 +7571,7 @@ function createHeirloom(zone, fromBones, spireCore, forceBest){
 	}
 	if (autoBattle.oneTimers.Nullicious.owned && game.global.universe == 2) buildHeirloom.nuMod *= autoBattle.oneTimers.Nullicious.getMult();
 	if (game.global.universe == 2 && u2Mutations.tree.Nullifium.purchased) buildHeirloom.nuMod *= 1.1;
+	buildHeirloom.nuMod *= u2SpireBonuses.nullifium();
 	game.global.heirloomsExtra.push(buildHeirloom);
 	if (game.options.menu.voidPopups.enabled != 2 || type == "Core" || (getHeirloomRarityRanges(zone, fromBones).length == (rarity + 1))){
 		displaySelectedHeirloom(false, 0, false, "heirloomsExtra", game.global.heirloomsExtra.length - 1, true);
@@ -9549,7 +9555,9 @@ function buildGrid() {
 		array = u2Mutations.addMutations(array);
 	}
     game.global.gridArray = array;
-    addSpecials();
+	if (!(game.global.spireActive && game.global.universe == 2)){
+    	addSpecials();
+	}
 }
 
 function getSeededRandomFromArray(seed, array){
@@ -9627,7 +9635,7 @@ function getRandomBadGuy(mapSuffix, level, totalCells, world, imports, mutation,
 			force = true;
 			break;
 		}
-		if (!mapSuffix && game.global.challengeActive == "Exterminate"){
+		if (!mapSuffix && game.global.challengeActive == "Exterminate" && game.global.world <= game.challenges.Exterminate.completeAfterZone){
 			if (badGuy.location == "Exterminate") badGuysArray.push(item);
 			continue;
 		}
@@ -9643,6 +9651,7 @@ function getRandomBadGuy(mapSuffix, level, totalCells, world, imports, mutation,
 	var exoticChance = 3;
 	if (Fluffy.isRewardActive("exotic")) exoticChance += 0.5;
 	if (game.permaBoneBonuses.exotic.owned > 0) exoticChance += game.permaBoneBonuses.exotic.addChance();
+	if (game.global.universe == 2 && game.global.spireActive && !mapSuffix) exoticChance = 0;
 	if (imports.length && !force && ((getRandomIntSeeded(enemySeed++, 0, 1000) / 10) < (imports.length * exoticChance))){
 		if (!mapSuffix) game.global.enemySeed = enemySeed;
 		return imports[getRandomIntSeeded(enemySeed++, 0, imports.length)];
@@ -10355,8 +10364,7 @@ function mapsSwitch(updateOnly, fromRecycle) {
 		document.getElementById("mapsCreateRow").style.display = "none";
         document.getElementById("grid").style.display = "none";
         document.getElementById("preMaps").style.display = "none";
-		u2Mutations.types.Nova.clearStacks();
-		u2Mutations.types.Rage.clearStacks();
+		u2Mutations.clearStacks();
         toggleMapGridHtml(true, currentMapObj);
 	} 
 	else {
@@ -10373,7 +10381,7 @@ function mapsSwitch(updateOnly, fromRecycle) {
         document.getElementById("preMaps").style.display = "none";
         toggleMapGridHtml();
 		setNonMapBox();
-		if (game.global.novaMutStacks > 0) u2Mutations.types.Nova.drawStacks();
+		u2Mutations.checkStacks();
     }
 	if (game.global.tutorialActive) tutorial.setWinSize();
 	if (game.global.challengeActive == "Smithless") game.challenges.Smithless.drawStacks();
@@ -10423,7 +10431,7 @@ function setNonMapBox(){
 	if (game.talents.mapBattery.purchased && bonus == 10) bonus *= 2;
 	if (bonus > 0) mapBonus.innerHTML = prettify(bonus * 20) + "% Map Bonus";
 	else mapBonus.innerHTML = "";
-	document.getElementById("worldName").innerHTML = (game.global.spireActive) ? ((checkIfSpireWorld(true) == 1) ? "Spire" : "Spire " + romanNumeral(checkIfSpireWorld(true))) : "Zone";	
+	document.getElementById("worldName").innerHTML = (game.global.spireActive) ? ((checkIfSpireWorld(true) == 1) ? "Spire" : "Spire " + romanNumeral(checkIfSpireWorld(true))) + (game.global.universe == 2 ? " Floor " + game.global.spireLevel : "") : "Zone";	
 }
 
 function repeatClicked(updateOnly){
@@ -10725,6 +10733,7 @@ function startFight() {
 	}
 	if ((cell.name == "Improbability") && game.global.spireActive){
 		displayedName = "Druopitee";
+		if (game.global.universe == 2) displayedName = (game.global.spireLevel == 10) ? "Stuffy" : "Echo of Stuffy"
 		if (game.global.challengeActive == "Coordinate") displayedName = "Druopitee and Pals";
 	}
 	else if (cell.name == "Omnipotrimp" && game.global.spireActive){
@@ -10778,7 +10787,7 @@ function startFight() {
 	if (game.global.brokenPlanet && !game.global.mapsActive){
 		badName += ' <span class="badge badBadge" onmouseover="tooltip(\'Pierce\', \'customText\', event, \'' + prettify(getPierceAmt() * 100) + '% of the damage from this Bad Guy pierces through block\')" onmouseout="tooltip(\'hide\')"><span class="glyphicon glyphicon-tint"></span></span>';
 	}
-	if (game.global.challengeActive == "Glass" || challengeActive("Slow") || (game.global.challengeActive == "Desolation" && game.global.mapsActive) || (cell.u2Mutation && cell.u2Mutation.length) || ((game.badGuys[cell.name].fast || cell.mutation == "Corruption") && game.global.challengeActive != "Coordinate" && game.global.challengeActive != "Nom"))
+	if (game.global.challengeActive == "Glass" || challengeActive("Slow") || (cell.u2Mutation && cell.u2Mutation.length) || ((game.badGuys[cell.name].fast || cell.mutation == "Corruption") && game.global.challengeActive != "Coordinate" && !challengeActive("Nom")))
 		badName += ' <span class="badge badBadge" onmouseover="tooltip(\'Fast\', \'customText\', event, \'This Bad Guy is fast and attacks first\')" onmouseout="tooltip(\'hide\')"><span class="glyphicon glyphicon-forward"></span></span>';
 	if ((challengeActive("Electricity") || game.global.challengeActive == "Mapocalypse")){
 		badName += ' <span class="badge badBadge" onmouseover="tooltip(\'Electric\', \'customText\', event, \'This Bad Guy is electric and stacks a debuff on your Trimps\')" onmouseout="tooltip(\'hide\')"><span class="icomoon icon-power-cord"></span></span>';
@@ -10825,8 +10834,8 @@ function startFight() {
 		if (game.global.spireActive && checkIfSpireWorld() && !game.global.mapsActive){
 			cell.origAttack = cell.attack;
 			cell.origHealth = cell.health;
-			cell.attack = getSpireStats(cell.level, cell.name, "attack");
-			cell.health = getSpireStats(cell.level, cell.name, "health");
+			cell.attack = getSpireStats(cell.level, cell.name, "attack", cell.origAttack);
+			cell.health = getSpireStats(cell.level, cell.name, "health", cell.origHealth);
 		}
 		if (cell.corrupted == "corruptStrong") cell.attack *= 2;
 		if (cell.corrupted == "healthyStrong") cell.attack *= 2.5;
@@ -11193,6 +11202,8 @@ function startFight() {
 		if (game.buildings.Antenna.owned >= 10){
 			game.global.soldierHealthMax *= game.jobs.Meteorologist.getExtraMult();
 		}
+		//U2 Spire
+		game.global.soldierHealthMax *= u2SpireBonuses.basics();
 		//Health Mutator
 		if (game.global.universe == 2 && u2Mutations.tree.Health.purchased)	game.global.soldierHealthMax *= 1.5;
 		if (game.global.universe == 2 && u2Mutations.tree.GeneHealth.purchased)	game.global.soldierHealthMax *= 10;
@@ -11325,6 +11336,7 @@ function startFight() {
 			if (game.global.universe == 2 && game.buildings.Smithy.owned > 0) healthTemp *= game.buildings.Smithy.getMult();
 			if (game.global.challengeActive == "Insanity") healthTemp *= game.challenges.Insanity.getHealthMult();
 			if (getPerkLevel("Resilience") > 0) healthTemp *= Math.pow(game.portal.Resilience.modifier + 1, getPerkLevel("Resilience"));
+			healthTemp *= u2SpireBonuses.basics();
 			if (game.global.universe == 2 && game.buildings.Antenna.owned >= 10) healthTemp *= game.jobs.Meteorologist.getExtraMult();
 			if (game.global.challengeActive == "Daily" && typeof game.global.dailyChallenge.pressure !== 'undefined') healthTemp *= dailyModifiers.pressure.getMult(game.global.dailyChallenge.pressure.strength, game.global.dailyChallenge.pressure.stacks);
 			if (game.global.formation !== 0 && game.global.formation !== 5){
@@ -11684,6 +11696,10 @@ function calculateDamage(number, buildString, isTrimp, noCheckAchieve, cell, noF
 		if (game.global.universe == 2 && game.global.novaMutStacks > 0 && !game.global.mapsActive){
 			number *= u2Mutations.types.Nova.trimpAttackMult();
 		}
+		if (game.global.universe == 2 && game.global.spireActive && game.global.spireMutStacks > 0 && !game.global.mapsActive){
+			number *= u2Mutations.types.Spire1.trimpAttackMult();
+		}
+		number *= u2SpireBonuses.basics();
 		if (game.global.universe == 2 && u2Mutations.tree.Attack.purchased){
 			number *= 1.5;
 		}
@@ -11738,6 +11754,7 @@ function calculateDamage(number, buildString, isTrimp, noCheckAchieve, cell, noF
 		//Situational Bad Guy damage increases
 		if (game.global.universe == 2) fluctuation = 0.5;
 		if (game.global.universe == 2 && game.global.novaMutStacks > 0 && !game.global.mapsActive) number *= u2Mutations.types.Nova.enemyAttackMult();
+		if (game.global.universe == 2 && game.global.spireActive && game.global.spireMutStacks > 0 && !game.global.mapsActive) number *= u2Mutations.types.Spire1.enemyAttackMult();
 		if (game.global.universe == 2 && cell.u2Mutation && cell.u2Mutation.length && u2Mutations.types.Rage.hasRage(cell)) number *= u2Mutations.types.Rage.enemyAttackMult();
 		if (game.global.challengeActive){
 			//Challenge bonuses here
@@ -12210,7 +12227,13 @@ function getTotalTalentCost(){
 
 
 function checkIfSpireWorld(getNumber){
-	if (game.global.universe == 2) return false; //until 5.1.0
+	if (game.global.universe == 2) {
+		if (game.global.world == 300) {
+			if (getNumber) return 1;
+			return true;
+		}
+		return false;	
+	}
 	if (game.global.world >= 200 && (game.global.world % 100) == 0){
 		var spireNumber = (Math.round(game.global.world / 100) - 1);
 		if (spireNumber > (game.global.lastSpireCleared + 1)){
@@ -12406,7 +12429,27 @@ function liquifyZone(){
 	grid[0].name = "Liquimp";
 }
 
+function nextU2SpireFloor(){
+	game.global.spireLevel++;
+	if (game.global.spireLevel > 10) {
+		finishU2Spire();
+		return;
+	}
+	u2Mutations.types.Spire1.removeStacks();
+	game.global.lastClearedCell = -1;
+	game.global.gridArray = [];
+	document.getElementById("grid").innerHTML = "";
+	buildGrid();
+	drawGrid();
+	setNonMapBox();
+	return;
+}
+
 function nextWorld() {
+	if (game.global.spireActive && game.global.universe == 2){
+		nextU2SpireFloor();
+		return;
+	}
 	if (game.global.world > getHighestLevelCleared()){
 		if (game.global.universe == 2){
 			game.global.highestRadonLevelCleared = game.global.world;
@@ -12929,10 +12972,16 @@ function startSpire(confirmed){
 	if (!confirmed){
 		game.global.spireDeaths = 0;
 		game.global.spireActive = true;
+		if (game.global.universe == 2){
+			game.global.spireLevel = Math.floor(game.global.u2SpireCellsBest / 100) + 1;
+			if (game.global.spireLevel > 10) game.global.spireLevel = 10;
+		}
 		setNonMapBox();
 		var spireSetting = game.options.menu.mapsOnSpire.enabled;
 		if (spireSetting && !checkMapAtZoneWorld()){
-			var highestSpire = Math.floor((getHighestLevelCleared() - 99) / 100);
+			var highestSpire;
+			if (game.global.universe == 1) highestSpire = Math.floor((getHighestLevelCleared() - 99) / 100);
+			else highestSpire = Math.floor((getHighestLevelCleared() - 225) / 75)
 			if (spireSetting == 1 || (spireSetting == 2 && spireNum >= highestSpire - 1) || (spireSetting == 3 && spireNum >= highestSpire)){
 				game.global.fighting = false;
 				mapsSwitch();
@@ -12942,7 +12991,8 @@ function startSpire(confirmed){
 		else handleExitSpireBtn();
 		if (spireNum == 1){
 			cancelTooltip();
-			tooltip("The Spire", null, 'update');
+			var uSpire = (game.global.universe == 2) ? "Stuffy's Spire" : "The Spire";
+			tooltip(uSpire, null, 'update');
 		}
 		return;
 	}
@@ -12954,7 +13004,11 @@ function handleExitSpireBtn(){
 	document.getElementById('exitSpireBtnContainer').style.display = display;
 }
 
-function getSpireStats(cellNum, name, what){
+function getSpireStats(cellNum, name, what, origAmt){
+	if (game.global.universe == 2){
+		//if (what == "attack") return origAmt * Math.pow(100, game.global.spireLevel + 1);
+		return origAmt * Math.pow(100, game.global.spireLevel + 1);
+	}
 	var base = (what == "attack") ? game.global.getEnemyAttack(100, null, true) : (game.global.getEnemyHealth(100, null, true) * 2);
 	var mod = (what == "attack") ? 1.17 : 1.14;
 	var spireNum = checkIfSpireWorld(true);
@@ -12970,6 +13024,16 @@ function getSpireStats(cellNum, name, what){
 	return base;
 }
 
+function finishU2Spire(){
+	game.global.spireActive = false;
+	game.global.lastClearedCell = -1;
+	buildGrid();
+	drawGrid();
+	setNonMapBox();
+	handleExitSpireBtn();
+	u2Mutations.types.Spire1.removeStacks();
+}
+
 function deadInSpire(){
 	game.global.spireDeaths++;
 	if (game.global.spireDeaths >= 10) {
@@ -12983,6 +13047,10 @@ function deadInSpire(){
 }
 
 function endSpire(cancelEarly){
+	if (game.global.universe == 2){
+		finishU2Spire();
+		return;
+	}
 	game.global.spireActive = false;
 	var cell = getCurrentWorldCell();
 	if (!cell) return;
@@ -13018,7 +13086,7 @@ function clearSpireMetals(){
 
 //Big storyline spoilers in the function below, be careful if you care
 
-function getSpireStory(spireNum, row){
+function getSpireStory(spireNum, row, getAll){
 	var spires = {
 		spire2: {
 			r2: "Everything in this Spire seems less tidy than the last, he never thought the first was something you could pass. You find a small note amongst some Nullifium.<br/><span class='spirePoem'>Healthy mutation bad...<br/>Slows delirium</span>Well that doesn't really sound like a bad thing. ",
@@ -13081,16 +13149,155 @@ function getSpireStory(spireNum, row){
 				else text += "The path through a few Zones just beyond the Spire is clear, but the not-so-distant Obsidian wall doesn't look like it will ever melt."
 				return text + " ";
 			}
+		},
+		spireU21: {
+			r1: "Scruffy congratulates you on the first step taken on the long journey through this Spire. Your Trimps already feel a little bit stronger!",
+			r5: "Your Trimps have a simultaneous coughing fit as Spores erupt from that Natural enemy and fill the room. You hear Stuffy attempt evil laughter on the Floor above you, but it honestly humors you more than it does intimidate. This combined with the effect of the Spores causes you to burst out laughging, and you hear an embarrassed Stuffy run further up the Spire.",
+			r10: "Scruffy lets you know that you're one tenth of one tenth of the way to the top. You consider finally giving him that lesson he's been asking for on multiplication of fractions but decide now is probably not the time.",
+			r15: "Another Natural enemy and another stack of the Spores. Your Trimps aren't acting quite as bothered by this one, but they definitely seem to have gotten weaker. Scruffy reminds you that at least there were only two Natural enemies on this Floor and they're both dead. Just gotta get to the next Floor to get out of this cloud, and your Trimps strength should fully return!",
+			r50: "You're halfway through the first Floor! Stuffy doesn't stand a chance.",
+			r90: "About 10 cells ahead, you see a small device emitting some sort of gas. Scruffy lets you know that smashing that will permanently remove this entire Floor from the Universe which sounds like a good thing to you!",
+			r100: "You've done it! That's one whole Floor cleared and removed completely from the Universe. Stuffy might be able to run for now, but as long as you can keep chipping away at his Spire, you'll reach him some day, in some timeline. As you begin to start work on the second Floor, you notice a chest containing four Mutated Heirlooms!", //4 mutated heirlooms
+			r105: "The first Natural enemy is down, but it looks like there's a few more of them on this Floor than the last. Scruffy says that the Natural mutation itself is actually a living entity, and that it's growing as we climb the Spire. Creepy!",
+			r120: "You hear Stuffy on the Floor above you yelling something about how much he hates pollution, but you don't think there's actually anything natural about this 'Natural' mutation.",
+			r140: "Stuffy pops out from behind the corpse of the recently destroyed Bad Guy and slaps a Dagger out of the hands of a nearby bewildered Trimp. He asks if you know how much damage was done to the planet to create that Dagger, and you guess not very much. He doesn't seem to have a response and retreats further into the Spire.",
+			r175: "The worst part of all of this is that you kind of agree with Stuffy's message about not destroying the planet but this Spire seems to be doing a lot more damage than you are, plus he's kind of a jerk.",
+			r190: "You've almost reached the end of another Floor, and once again you spot the small, strange, gas-emitting device. You need to destroy it as quickly as possible!",
+			r200: "Another Floor down, another Floor erased from existence. Scruffy points out that you may not remember anything about this Spire after your next Portal, but assures you that he can fill you in whenever you need it. You have gained a lot of knowledge on the Mutations now, and will permanently gain 2x Mutated Seeds.", //2x seeds
+			r205: "The Natural Mutation is still growing! What is it becoming!?",
+			r225: "Despite all the toxic spore clouds and Mutations, your Trimps are in good spirits. As long as they get to kill Bad Guys, they're usually pretty happy.",
+			r250: "You're officially a quarter of the way through the entire Spire. Scruffy tells you that Fluffy would be proud.",
+			r275: "You can't stop thinking about how Scruffy told you the Mutation here was alive, what is it going to grow in to?!",
+			r290: "You can finally see the gas-emitting device at the end of this Floor! You ask Scruffy what it actually is, and he states that it's a Spire Stabilizer. Apparently the Spires and Mutation spreaders are based on some wild dimension-bending technology that will simply cease existing without the right precautions.",
+			r300: "You've done it! 3 Floors of this wretched place have been scrubbed from existence. Scruffy seems to be growing more powerful with every Floor cleared, and now permanently gains +50% experience!", //+50% scruffy xp
+			r306: "The Mutation here seems to become more plantlike the higher you climb. Scruffy says that's probably what Stuffy was going for.",
+			r330: "Stuffy shows up again and tries once more to shame you for the damage you've done to the planet. You just kinda ignore him and he eventually goes away.",
+			r360: "The spores tickle the inside of your brain!",
+			r390: "This Floor's Stabilizer is finally within viewing distance! You can't wait to see what goodies await you at the end of this Floor.",
+			r400: "One more Floor, one more Stabilizer. Only one Floor from the halfway point now, you're really making a dent in this Spire! Just as you were escaping the evaporating Floor, you found a strange blue orb and naturally you grabbed it. It didn't seem to react to your touch, but when you tossed it to a nearby Trimp it released an intense burst of energy and caused all your Trimps to look a bit stronger. Your Trimps permanently gained +10% Crit Chance!", //+10% crit
+			r407: "The Mutation grows...",
+			r430: "You ask Scruffy what actually happens if 10 groups of Trimps die here, and he reveals that he actually teleports you out himself. You ask why, and he tells you it's better not to waste time on an impossible task.",
+			r460: "After some thought about your last conversation with Scruffy, you approach him and ask if he could at least hold off on the teleport if you're like really close to finishing Scruffy off or something. He tells you only a clean kill will suffice.",
+			r470: "You lost all your Trimps! Oh no wait there they are.",
+			r490: "Just as you expected, there's another Stabilizer on this Floor, and you have located it with your eyeballs.",
+			r500: "Scruffy congratulates you on destroying half of Stuffy's Spire! He has a good laugh thinking about how mad Stuffy must be. After waiting an uncomfortable amount of time for him to stop laughing, you ask if he knows anything about this strange device you found at the end of the last Floor. He pushes a button on it, straps it on his arm, and tells you that the bonus Attack, Health and Radon your Trimps were gaining from this Spire are all now doubled!", //2x basic
+			r507: "As Scruffy predicted, the Mutation continues to grow larger. Is it starting to look a little bit like a tree?",
+			r525: "You ask Scruffy where Mutations actually came from. He says that it must have been created after he and Fluffy rebelled so he doesn't know much, but that the seeds are extremely energy-dense.",
+			r560: "You spot Stuffy hiding behind an incredibly out of place looking bush and decide to just ask him why he's releasing all this Mutation on the planet he claims to love so much. He tells you he's making Nature stronger and that the planet would thank him if it could. Just as you were about to respond, both Stuffy and the bush vanished.",
+			r590: "Is the Stabilizer on this Floor dancing on 8 legs or are the Spores just starting to get to you? Either way you should probably go break that thing.",
+			r600: "As you emerge from the non-existent space of the previous Floor, you take in a deep Spore-free breath and pat yourself on the back. Out of the corner of your eye you notice a small yellow shard, and touching it fills you with ancient knowledge allowing you to gain an extra 20% Nullifium when recycling Heirlooms!", //Needs reward
+			r607: "The Mutation continues to grow and organize. You let out a deep sigh thinking about how many Spores will be in the air at the end of this Floor.",
+			r630: "Scruffy seems to be growing tired of making notes of everything that has happened in this Spire.",
+			r660: "Stuffy comes by once again but you can't really understand what he's saying. You're not sure if it's the spores or if he's just messing with you.",
+			r690: "Once again you spot a Stabilizer! You really want to clear it fast, the spores are not very enjoyable.",
+			r700: "As you finish up the Floor and the Floor drains away, you take a look at your Trimps and realize they're pretty great. That's seven whole floors and one mad Stuffy, and now Scruffy earns another 50% XP!", //+50% scruffy xp
+			r707: "Ok that Mutation is definitely a tree. A big scary tree!",
+			r750: "You've made it three quarters of the way through the Spire! This evil structure is now a small fragment of what it once was, thanks to you. Scruffy offers you a small, strange berry as congratulations.",
+			r775: "Stuffy stops by again and asks you really nicely to just leave. He says he won't mess with you anymore, but that he can't stand to let Druopitee down. You tell him you'll leave if he destroys the rest of the Spire, but he just makes a weird noise and runs off.",
+			r790: "You know the deal, another Stabilizer spotted for your Spire-Destroying pleasure!",
+			r800: "That's eight Floors down, two to go! You found another strange blue orb which you toss directly to a Trimp and show no surprise when they gain another +15% Crit Chance! Scruffy points forward, you nod your head, and continue on.", //+15% crit
+			r807: "One of the Mutated cells here looks different! You ask Scruffy about it and he tells you that the orange ones have a much higher concentration of Spores, and will release 10x the normal amount of Spores when attacked and killed. You're not liking the sound of that...",
+			r830: "Stuffy tried to take a Trimp hostage in order to force you to leave, but he dropped the Trimp and it ran back like nothing happened.",
+			r860: "Stuffy's making some odd noises up ahead, it seems like you've thoroughly frightened him.",
+			r890: "Is that another Stabilizer down there? Don't mind if you do.",
+			r900: "You've actually done it! You've made it to the final Floor! Scruffy tells you that this Floor was stabilized by Druopitee himself and cannot be permanently removed from all timelines, but that you can certainly remove it and Stuffy from this timeline. Now that you can think properly without the Spores of the previous Floor, you realize there's some new knowledge in your head that will allow you to gain 2x more Seeds!", //2x seeds
+			r907: "You can sense Stuffy at the end of this Floor. The little fella has nowhere else to run! It's time to finish this.",
+			r930: "A Trimp walks up to you and offers you a small stick he found as a good luck charm. With the power of this stick, you basically can't lose now.",
+			r960: "You're so close you can almost taste the impending victory. Or maybe that's just all the spores in the air.",
+			r990: "Just as Scruffy predicted, there's no Stabilizer at the end of this Floor. But there is a Stuffy, and destroying him will be good enough for you.",
+			r1000: "Stuffy lets out a shriek as your Trimps finish him off. You smash the Mutation spreader into a thousand pieces, and the air begins to clear. However you still see a large amount of Mutation ahead of you in the World, and it becomes apparent that you'll be needing to pay a visit to Buffy next. Scruffy lets you know that you've done an amazing thing for the timeline, and that the ruins of the Spire are now acting as a beacon increasing your Trimps Attack, Health, and your Radon gain by 10x until you Portal. You've accomplished something amazing here, and with a massive sense of accomplishment you continue on to the next one." //10x basic
 		}
 	}
 	var spire = spires['spire' + spireNum];
+	if (getAll) return spire;
 	if (typeof spire == 'undefined') return '';
 	var rowText = spire['r' + row];
 	if (typeof rowText == 'undefined') return '';
 	return rowText;
 }
 
+var u2SpireBonuses = {
+	scruffyXp: function(){
+		var mult = 1;
+		if (game.global.universe != 2) return mult;
+		if (game.global.u2SpireCellsBest >= 300) mult += 0.5;
+		if (game.global.u2SpireCellsBest >= 700) mult += 0.5;
+		return mult;
+	},
+	seedDrop: function(){
+		var mult = 1;
+		if (game.global.u2SpireCellsBest >= 200) mult *= 2;
+		if (game.global.u2SpireCellsBest >= 900) mult *= 2;
+		return mult;
+	},
+	critChance: function(){
+		var add = 0;
+		if (game.global.universe != 2) return add;
+		if (game.global.u2SpireCells >= 400) add += 0.10;
+		if (game.global.u2SpireCells >= 800) add += 0.15;
+		return add;
+	},
+	nullifium: function(){
+		var mult = 1;
+		if (game.global.u2SpireCellsBest >= 600) mult *= 1.2;
+		return mult;
+	},
+	basics: function(){
+		//attack, health, radon
+		var mult = 1;
+		if (game.global.universe != 2) return mult;
+		if (game.global.u2SpireCellsBest <= 0) return mult;
+		var credit = this.cellCredit();
+		mult = Math.pow(1.01, credit);
+		if (game.global.u2SpireCellsBest >= 500) mult *= 2;
+		if (game.global.u2SpireCells >= 1000) mult *= 10;
+		return mult;
+	},
+	cellCredit: function(){
+		return (game.global.u2SpireCellsBest > game.global.u2SpireCells) ? Math.floor(game.global.u2SpireCellsBest / 100) * 100 : game.global.u2SpireCells;
+	}
+}
+
+function scruffySpireStory(){
+	var text = "<div style='max-height: 50vh; overflow-y: auto'>You may not remember every Floor in Stuffy's Spire, but Scruffy does! He offers you the following recap of everything that has happened so far:";
+	var max = u2SpireBonuses.cellCredit();
+	var stories = getSpireStory("U21", null, true);
+	var lastFloor = 0;
+	for(var item in stories){
+		var cell = parseInt(item.split('r')[1], 10);
+		if (cell > max) break;
+		var thisFloor = Math.ceil(cell / 100);
+		if (thisFloor > lastFloor){
+			text += "<hr/><b style='font-size: 1.2em'>Floor " + thisFloor + "</b><br/>";
+			lastFloor++;
+		}
+		text += "<b>Cell " + cell + "</b>: " + stories[item] + "<br/>";
+	}
+	text += "</div>";
+	tooltip('confirm', null, 'update', text, "tooltip('Fluffy', null, 'update')", "Stuffy's Spire", 'Back', true)
+}
+
+function rewardU2Spire(level){
+	var totalCells = (100 * (game.global.spireLevel - 1)) + level;
+	if (game.global.u2SpireCells < totalCells) game.global.u2SpireCells = totalCells;
+	if (game.global.u2SpireCellsBest < totalCells) game.global.u2SpireCellsBest = totalCells;
+	var text = getSpireStory("U21", totalCells);
+	if (text == '') return;
+	switch(totalCells){
+		case(100):
+			for (var x = 0; x < 4; x++){
+				createHeirloom(300, false, false, true);
+			}
+			break;
+	}
+	message(text, "Story");
+}
+
 function giveSpireReward(level){
+	if (game.global.universe == 2) {
+		rewardU2Spire(level);
+		return;
+	}
 	var spireWorld = checkIfSpireWorld(true);
 	if (level != 0 && level % 10 == 0) game.global.spireRows++;
 	if (spireWorld == 1){
@@ -14873,10 +15080,14 @@ function fight(makeUp) {
 	var critSpan = document.getElementById("critSpan");
 	critSpan.innerHTML = "";
 	var critChance = getPlayerCritChance();
+	var doubleCritChance = getPlayerDoubleCritChance();
 	if (critChance > 0){
 		critTier = Math.floor(critChance);
 		critChance = critChance % 1;
 		if (Math.random() < critChance){
+			critTier++;
+		}
+		if (doubleCritChance > 0 && Math.random() < doubleCritChance){
 			critTier++;
 		}
 		if (critTier > 0){
@@ -14940,7 +15151,7 @@ function fight(makeUp) {
 	if (game.global.world >= getObsidianStart() && !game.global.mapsActive){
 		game.global.soldierHealth = 0;
 	}
-	var checkFast = (game.global.challengeActive == "Glass" || challengeActive("Slow") || ((((game.badGuys[cell.name].fast || cell.mutation == "Corruption") && game.global.challengeActive != "Nom") || game.global.voidBuff == "doubleAttack") && game.global.challengeActive != "Coordinate"));
+	var checkFast = (game.global.challengeActive == "Glass" || challengeActive("Slow") || ((((game.badGuys[cell.name].fast || cell.mutation == "Corruption") && !challengeActive("Nom")) || game.global.voidBuff == "doubleAttack") && game.global.challengeActive != "Coordinate"));
 	if (game.global.soldierHealth <= 0) checkFast = false;
 	if (checkFast && game.global.challengeActive == "Exterminate" && game.challenges.Exterminate.experienced) checkFast = false;
 	var forceSlow = false;
@@ -15205,6 +15416,7 @@ function fight(makeUp) {
 	if (game.global.universe == 2 && attacked && cell.u2Mutation && cell.u2Mutation.length){
 		if (u2Mutations.types.Nova.hasNova(cell)) u2Mutations.types.Nova.attacked();
 		if (u2Mutations.types.Rage.hasRage(cell)) u2Mutations.types.Rage.attacked();
+		if (game.global.spireActive && u2Mutations.types.Spire1.hasMut(cell)) u2Mutations.types.Spire1.attacked(cell);
 	}
 	if (game.global.challengeActive == "Berserk" && attacked){
 		game.challenges.Berserk.attacked();
@@ -15426,8 +15638,17 @@ function getCritText(critTier){
 			return "<span class='critTier6'><span class='icomoon icon-diamond'></span> CRIT!</span>";
 		case 7:
 			return "<span class='critTier7'><span class='icomoon icon-bolt'></span> CRIT!!</span>";
+		case 8:
+			return "<span class='critTier8'><span class='icomoon icon-eye4'></span> CRIT!!</span>";
+		case 9:
+			return "<span class='critTier9'><span class='icomoon icon-radioactive'></span> CRIT!!</span>";
+
 	}
 	return "";
+}
+
+function getPlayerDoubleCritChance(){
+	return getHeirloomBonus("Shield", "doubleCrit") / 100;
 }
 
 function getPlayerCritChance(){ //returns decimal: 1 = 100%
@@ -15449,7 +15670,8 @@ function getPlayerCritChance(){ //returns decimal: 1 = 100%
 		}
 		if (Fluffy.isRewardActive('SADailies')) critChance += Fluffy.rewardConfig.SADailies.critChance();
 	}
-	if (critChance > 7) critChance = 7;
+	critChance += u2SpireBonuses.critChance();
+	if (critChance > 9) critChance = 9;
 	return critChance;
 }
 
@@ -17782,6 +18004,7 @@ var Fluffy = {
 		if (game.global.universe == 1 && game.global.frigidCompletions > 0){
 			reward *= game.challenges.Frigid.getTrimpMult();
 		}
+		reward *= u2SpireBonuses.scruffyXp();
 		if (count) reward *= count;
 		if (getHeirloomBonus("Staff", "FluffyExp") > 0){
 			reward *= (1 + (getHeirloomBonus("Staff", "FluffyExp") / 100));
@@ -17948,6 +18171,8 @@ var Fluffy = {
 			case "frigid":
 				elem.innerHTML = 'From the Frigid Challenge. Currently granting ' + prettify(game.challenges.Frigid.getTrimpMult()) + 'x.';
 				return;
+			case "stuffy":
+				elem.innerHTML = "From knowledge gained in Stuffy's Spire. Currently granting " + prettify(u2SpireBonuses.scruffyXp()) + "x.";
 		}
 	},
 	cruffysToggled: false,
@@ -18053,9 +18278,10 @@ var Fluffy = {
 			if (showCruffys) fluffFormula += ' * <span class="fluffFormLab" onmouseover="Fluffy.expBreakdown(\'labs\')" onmouseout="Fluffy.expBreakdown(\'clear\')">Labs</span>';
 			if (game.global.universe == 2 && autoBattle.oneTimers.Battlescruff.owned) fluffFormula += ' * <span class="fluffFormBattlescruff" onmouseover="Fluffy.expBreakdown(\'battlescruff\')" onmouseout="Fluffy.expBreakdown(\'clear\')">Battlescruff</span>';
 			if (game.global.universe == 2 && u2Mutations.tree.Scruffy.purchased) fluffFormula += ' * <span class="fluffFormMutators" onmouseover="Fluffy.expBreakdown(\'mutators\')" onmouseout="Fluffy.expBreakdown(\'clear\')">Mutators</span>';
+			if (game.global.universe == 2 && u2SpireBonuses.scruffyXp() > 1) fluffFormula += ' * <span class="fluffFormStuffy" onmouseover="Fluffy.expBreakdown(\'stuffy\')" onmouseout="Fluffy.expBreakdown(\'clear\')">Stuffy\'s Spire</span>';
 			fluffFormula = fluffFormula.replace('Zone', '<span onmouseover="Fluffy.expBreakdown(\'zone\')" onmouseout="Fluffy.expBreakdown(\'clear\')" class="fluffFormZone">Zone</span>');
-			fluffFormula = fluffFormula.replace('Cunning', '<span onmouseover="Fluffy.expBreakdown(\'cunning\')" onmouseout="Fluffy.expBreakdown(\'clear\')" class="fluffFormCunning">Cunning</span>')
-			fluffFormula = fluffFormula.replace('Curious', '<span onmouseover="Fluffy.expBreakdown(\'curious\')" onmouseout="Fluffy.expBreakdown(\'clear\')" class="fluffFormCurious">Curious</span>')			
+			fluffFormula = fluffFormula.replace('Cunning', '<span onmouseover="Fluffy.expBreakdown(\'cunning\')" onmouseout="Fluffy.expBreakdown(\'clear\')" class="fluffFormCunning">Cunning</span>');
+			fluffFormula = fluffFormula.replace('Curious', '<span onmouseover="Fluffy.expBreakdown(\'curious\')" onmouseout="Fluffy.expBreakdown(\'clear\')" class="fluffFormCurious">Curious</span>');
 			topText += fluffFormula;
 		}
 		if (calculatedPrestige > 0 && Fluffy.currentLevel < 10 && !(calculatedPrestige == 1 && game.talents.fluffyAbility.purchased))

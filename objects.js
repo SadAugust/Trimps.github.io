@@ -1530,7 +1530,7 @@ var autoBattle = {
             description: function(){
                 return "+" + prettify(this.bleedChance()) + "% to Bleed Chance, +" + prettify(this.attack()) + " Attack, -25% Enemy Attack Time, -25% Enemy Attack Damage. Fills up " + prettify(this.barFill() * 100) + "% of your Attack Speed bar whenever you cause or receive a Bleed.";
             },
-            upgrade: "+5% Bleed Chance, +2 Attack, +5% bar filled on Bleed",
+            upgrade: "+5% Bleed Chance, +2 Attack, +5% (up to +160%) bar filled on Bleed",
             attack: function(){
                 return 6 + (this.level * 2)
             },
@@ -1541,7 +1541,9 @@ var autoBattle = {
                 return 25 + (5 * this.level);
             },
             barFill: function(){
-                return 0.20 + (0.05 * this.level);
+                var fill = 0.20 + (0.05 * this.level);
+                if (fill > 1.6) fill = 1.6;
+                return fill;
             },
             doStuff: function(){
                 autoBattle.trimp.bleedChance += this.bleedChance();
@@ -2324,7 +2326,7 @@ var autoBattle = {
             doStuff: function(){
                 var bleedChance = autoBattle.trimp.bleedChance;
                 if (autoBattle.items.Sacrificial_Shank.equipped) bleedChance = Math.floor(bleedChance * 0.75);
-                if (bleedChance > autoBattle.enemy.bleedResist && autoBattle.trimp.bleedTime > 0 && autoBattle.trimp.bleedMod > 0){
+                if (bleedChance > autoBattle.enemy.bleedResist && (autoBattle.trimp.bleedTime > 0 || autoBattle.items.Doppelganger_Diadem.equipped) && autoBattle.trimp.bleedMod > 0){
                     autoBattle.trimp.defense += this.defense();
                     autoBattle.trimp.maxHealth += this.health();
                     autoBattle.trimp.lifesteal += this.lifesteal();
@@ -2580,6 +2582,27 @@ var autoBattle = {
             startPrice: 200000,
             priceMod: 20
         },
+        Doppelganger_Diadem: {
+            owned: false,
+            equipped: false,
+            hidden: false,
+            level: 1,
+            zone: 250,
+            description: function(){
+                return "Can create a Bleed on the Enemy for 10 seconds. 2x Attack if the Signet is equipped, x2 again if Doppelganger is alive. Doppelganger has 50% more health and can resurrect once per fight.";
+            },
+            doStuff: function(){
+                if (autoBattle.trimp.bleedTime <= 10000) autoBattle.trimp.bleedTime = 10000;
+                if (autoBattle.items.Doppelganger_Signet.equipped){
+                    autoBattle.trimp.attack *= 2;
+                    if (!autoBattle.trimp.doppDown) autoBattle.trimp.attack *= 2;
+                    if (typeof autoBattle.trimp.doppLives === 'undefined') autoBattle.trimp.doppLives = 1;
+                }
+
+            },
+            noUpgrade: true,
+            dustType: "shards",
+        },
         Doppelganger_Signet: { //actual final attack item
             owned: false,
             equipped: false,
@@ -2594,14 +2617,28 @@ var autoBattle = {
                 var damageDealt = autoBattle.enemy.dmgTaken;
                 autoBattle.damageCreature(autoBattle.enemy, damageDealt, false, true);
                 autoBattle.enemy.defense *= 0.5;
-                autoBattle.trimp.doppDown = true;
+                if (autoBattle.trimp.doppLives) autoBattle.trimp.doppLives--;
+                else autoBattle.trimp.doppDown = true;
+            },
+            doppHealth: function(){
+                var healthAmt = autoBattle.trimp.maxHealth;
+                if (autoBattle.items.Doppelganger_Diadem.equipped){
+                    healthAmt *= 1.5;
+                    if (!autoBattle.trimp.doppLives) healthAmt *= 2;
+                }
+                return healthAmt;
+            },
+            explodeDmg: function(){
+                var damageAmt = autoBattle.trimp.dmgTaken;
+                if (autoBattle.items.Doppelganger_Diadem.equipped && autoBattle.trimp.doppLives == 1) damageAmt *= 2;
+                return damageAmt;
             },
             doStuff: function(){
                 if (autoBattle.trimp.doppDown) return;
                 autoBattle.trimp.attack *= 2;
                 autoBattle.trimp.damageTakenMult *= 0.5;
                 autoBattle.trimp.poisonRate++;
-                if (autoBattle.trimp.dmgTaken >= autoBattle.trimp.maxHealth || autoBattle.enemy.dmgTaken >= autoBattle.enemy.health) this.onDeath();
+                if (autoBattle.trimp.dmgTaken >= this.doppHealth() || this.explodeDmg() >= autoBattle.enemy.health) this.onDeath();
             },
             noUpgrade: true,
             dustType: "shards"
@@ -2771,6 +2808,15 @@ var autoBattle = {
             owned: false,
             requiredItems: 48,
             useShards: true
+        },
+        Radiant_Ring: {
+            description: "Your ring gains a third slot.",
+            owned: false,
+            requiredItems: 50,
+            useShards: true,
+            onPurchase: function(){
+                autoBattle.checkAddRingSlot();
+            }
         },
         Expanding_Tauntimp: {
             description: "Starting after your next Portal, U2 Tauntimps will increase all Trimps gained by " + prettify(game.badGuys.Tauntimp.expandingBase() * 100) + "% per run instead of adding flat housing.",
@@ -3731,6 +3777,7 @@ var autoBattle = {
     getRingSlots: function(){
         var amt = Math.floor((this.rings.level - 5) / 10) + 1;
         if (amt > 2) amt = 2;
+        if (this.oneTimers.Radiant_Ring.owned) amt++;
         return amt;
     },
     levelRing: function(){
@@ -3739,13 +3786,17 @@ var autoBattle = {
         this.saveLastAction("ring", null, cost);
         this.shards -= cost;
         this.rings.level++;
+        
+        this.checkAddRingSlot();
+        this.popup(false, false, true);
+    },
+    checkAddRingSlot: function(){
         var slots = this.getRingSlots();
         if (this.rings.mods.length < slots){
             var availableMods = this.getAvailableRingMods();
             var randomMod = availableMods[Math.floor(Math.random() * availableMods.length)];
             this.rings.mods.push(randomMod);
         }
-        this.popup(false, false, true);
     },
     getAvailableRingMods: function(){
         var availableMods = [];
@@ -4063,8 +4114,9 @@ var autoBattle = {
                 if (this.items.Doppelganger_Signet.equipped){
                     statsText += "Doppelganger ";
                     if (this.trimp.doppDown) statsText += " Dead!";
-                    else statsText += "Health: " + prettify(this.trimp.maxHealth - this.trimp.dmgTaken);
-                    statsText += "&nbsp;&nbsp;&nbsp;&nbsp;"
+                    else statsText += "Health: " + prettify(autoBattle.items.Doppelganger_Signet.doppHealth() - this.trimp.dmgTaken);
+                    if (this.trimp.doppLives == 1) statsText += "&nbsp;<span class='icomoon icon-heart3'></span>&nbsp;&nbsp;";
+                    else statsText += "&nbsp;&nbsp;&nbsp;&nbsp;";
                 }
                 if (this.items.Goo_Golem.equipped && this.items.Goo_Golem.active()){
                     statsText += "Goo Golem: " + prettify(this.trimp.gooStored) + " Stored";
@@ -4851,6 +4903,10 @@ var u2Mutations = {
     },
     rewardMutation: function(cell){
         if (!cell.u2Mutation || !cell.u2Mutation.length) return 0;
+        if (game.global.spireActive && game.global.universe == 2){
+            this.types.Spire1.onDeath(cell);
+            return;
+        }
         var reward = game.global.world - 199;
         var rewardMult = 0;
         if (cell.u2Mutation.length >= 2) giveSingleAchieve("Double Trouble");
@@ -4900,6 +4956,7 @@ var u2Mutations = {
             reward *= (1 + (getDailyHeliumValue(countDailyWeight()) / 100));
         }
         if (Fluffy.isRewardActive("bigSeeds")) reward *= 10;
+        reward = calcHeirloomBonus("Staff", "SeedDrop", reward);
         game.global.mutatedSeeds += reward;
         if (typeof game.global.messages.Loot.seeds === 'undefined') game.global.messages.Loot.seeds = true;
         message("You found " + prettify(reward) + " Mutated Seed" + needAnS(reward) + nullText + " on that " + this.getName(cell.u2Mutation) + " enemy!", 'Loot', null, 'seedMessage', 'seeds', null, 'background-color: ' + this.getColor(cell.u2Mutation));
@@ -4915,6 +4972,7 @@ var u2Mutations = {
         this.setAlert();
     },
     addMutations: function(array){
+        if (game.global.spireActive && game.global.universe == 2) return this.types.Spire1.pattern(array);
         if (game.global.world < 201) return array;
         var thisTypes = this.getTypes();
         if (thisTypes.length == 0) return array;
@@ -5005,6 +5063,21 @@ var u2Mutations = {
                 r: 0,
                 g: 51,
                 b: 153
+            },
+            S1G: {
+                r: 34,
+                g: 177,
+                b: 76
+            },
+            S1O: {
+                r: 255,
+                g: 127,
+                b: 39
+            },
+            S1R: {
+                r: 255,
+                g: 0,
+                b: 0
             }
     
         }
@@ -5036,6 +5109,7 @@ var u2Mutations = {
             else if (name == "NVA" || name == "NVX") name = "Nova";
             else if (name == "CSX" || name == "CSP") name = "Swapper";
             else if (name == "CMP" || name == "CMX") name = "Compression";
+            else if (name == "S1G" || name == "S1R" || name == "S1O") name = "Spire1";
             if (nameList.indexOf(name) != -1) continue;
             nameList.push(name);
         }
@@ -5056,7 +5130,89 @@ var u2Mutations = {
         }
         return text;
     },
+    checkStacks: function(){
+        if (game.global.novaMutStacks > 0 && !game.global.mapsActive) this.types.Nova.drawStacks();
+        if (game.global.spireMutStacks > 0 && !game.global.mapsActive) this.types.Spire1.drawStacks();
+    },
+    clearStacks: function(){
+        this.types.Nova.clearStacks();
+		this.types.Rage.clearStacks();
+        this.types.Spire1.clearStacks();
+    },
     types: {
+        Spire1: {
+            pattern: function(currentArray){
+                var shape = this.getShape();
+                for (var x = 0; x < shape.length; x++){
+                    var thisShape = shape[x];
+                    currentArray[thisShape[0]].u2Mutation.push(this.defs[thisShape[1]]);
+                }
+                return currentArray;
+            },
+            getShape: function(){
+                switch(game.global.spireLevel){
+                    case 1:
+                        return [[4,0],[14,0]];
+                    case 2:
+                        return [[4,0],[14,0],[24,0],[34,0],[44,0],[54,0]];
+                    case 3:
+                        return [[3,0],[4,0],[14,0],[24,0],[34,0],[44,0],[53,0],[54,0],[64,0]];
+                    case 4:
+                        return [[3,0],[4,0],[5,0],[14,0],[15,0],[24,0],[25,0],[34,0],[44,0],[53,0],[54,0],[64,0],[74,0]];
+                    case 5:
+                        return [[3,0],[4,0],[5,0],[6,0],[14,0],[15,0],[24,0],[25,0],[34,0],[44,0],[53,0],[54,0],[63,0],[64,0],[73,0],[74,0],[82,0],[83,0]];
+                    case 6:
+                        return [[3,0],[4,0],[5,0],[6,0],[14,0],[15,0],[24,0],[25,0],[34,0],[35,0],[44,0],[45,0],[53,0],[54,0],[55,0],[63,0],[64,0],[65,0],[73,0],[74,0],[75,0],[76,0],[82,0],[83,0],[86,0],[96,0],[97,0]];
+                    case 7:
+                        return [[2,0],[3,0],[4,0],[5,0],[6,0],[13,0],[14,0],[15,0],[23,0],[24,0],[25,0],[33,0],[34,0],[35,0],[43,0],[44,0],[45,0],[53,0],[54,0],[55,0],[63,0],[64,0],[65,0],[72,0],[73,0],[74,0],[75,0],[76,0],[81,0],[82,0],[83,0],[85,0],[86,0],[87,0],[92,0],[97,0]];    
+                    case 8:
+                        return [[2,0],[3,0],[4,0],[5,0],[6,0],[13,0],[14,0],[15,0],[23,0],[24,0],[25,0],[33,0],[34,0],[35,0],[41,0],[42,0],[43,0],[44,0],[45,0],[53,1],[54,0],[55,0],[63,0],[64,0],[65,0],[72,0],[73,0],[74,0],[75,0],[76,0],[81,0],[82,0],[83,0],[85,0],[86,0],[87,0],[91,0],[93,0],[95,0],[97,0]];
+                    case 9:
+                        return [[2,0],[3,0],[4,0],[5,0],[6,0],[13,0],[14,0],[15,0],[23,0],[24,0],[25,0],[33,0],[34,0],[35,0],[40,0],[41,0],[42,0],[43,0],[44,0],[45,0],[46,0],[51,0],[53,1],[54,0],[55,1],[60,0],[61,0],[63,0],[64,0],[65,0],[72,0],[73,0],[74,0],[75,0],[76,0],[81,0],[82,0],[83,0],[85,0],[86,0],[87,0],[91,0],[93,0],[95,0],[97,0]];
+                    case 10:
+                        return [[2,0],[3,0],[4,0],[5,0],[6,0],[13,0],[14,0],[15,0],[23,0],[24,0],[25,0],[33,0],[34,0],[35,0],[38,0],[40,0],[41,0],[42,0],[43,0],[44,0],[45,0],[46,0],[47,0],[48,0],[51,0],[53,1],[54,0],[55,1],[57,0],[60,0],[61,0],[63,0],[64,0],[65,0],[72,0],[73,0],[74,0],[75,0],[76,0],[81,0],[82,0],[83,0],[85,0],[86,0],[87,0],[88,0],[89,0],[91,0],[93,0],[95,0],[97,0],[99,2]]
+                }
+            },
+            hasMut: function(cell){
+                if (!cell.u2Mutation || !cell.u2Mutation.length) return false;
+                var mut = cell.u2Mutation[0];
+                if (mut == "S1G" || mut == "S10" || mut == "S1R") return true;
+            },
+            removeStacks: function(){
+                game.global.spireMutStacks = 0;
+                this.clearStacks();
+            },
+            clearStacks: function(){
+				manageStacks(null, null, true, 'spireMutStacks', null, null, true);
+			},
+			drawStacks: function(){
+				manageStacks('Spore Cloud', Math.ceil(game.global.spireMutStacks), true, 'spireMutStacks', 'icomoon icon-sun', this.stackTooltip());
+			},
+            stackTooltip: function(){
+                return "The Spore Cloud is choking your Trimps and strengthening the Bad Guys! Trimps deal " + prettify(this.trimpAttackMult()) + "x damage, and enemies deal " + prettify(this.enemyAttackMult()) + "x damage. Gain 1/10th of a stack for every attack against Natural enemies in this Spire and 1 stack when killing them. Stacks reset when completing a Floor. Active in World only."
+            },
+            onDeath: function(cell){
+                var mut = cell.u2Mutation[0];
+                if (mut == "S1G") game.global.spireMutStacks++;
+                if (mut == "S1O") game.global.spireMutStacks += 10;
+                this.drawStacks();
+            },
+            attacked: function(cell){
+                var mut = cell.u2Mutation[0];
+                if (mut == "S1G") game.global.spireMutStacks += 0.1;
+                else if (mut == "S1O") game.global.spireMutStacks += 1;
+                else if (mut == "S1R") game.global.spireMutStacks += 2;
+                this.drawStacks();
+            },
+            trimpAttackMult: function(){
+                return Math.pow(0.99, Math.ceil(game.global.spireMutStacks));
+            },
+            enemyAttackMult: function(){
+                return Math.pow(1.01, Math.ceil(game.global.spireMutStacks));
+            },
+            defs: ["S1G", "S1O", "S1R"],
+            name: "Natural"
+        },
         Rage: {
             pattern: function(currentArray){
                 var possible = this.cellCount();
