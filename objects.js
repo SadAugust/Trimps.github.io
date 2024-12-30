@@ -1903,7 +1903,7 @@ var autoBattle = {
                 return 25 + (50 * this.level);
             },
             onEnemy: function(){
-                if (autoBattle.items.Rusty_Dagger.equipped || autoBattle.items.Big_Cleaver.equipped || autoBattle.items.Bag_of_Nails.equipped){
+                if (autoBattle.items.Rusty_Dagger.equipped || autoBattle.items.Big_Cleaver.equipped || autoBattle.items.Bag_of_Nails.equipped || autoBattle.items.Doppelganger_Diadem.equipped){
                     autoBattle.enemy.baseHealth *= 0.75;
                     autoBattle.enemy.maxHealth *= 0.75;
                     autoBattle.enemy.health = autoBattle.enemy.maxHealth;
@@ -2630,7 +2630,7 @@ var autoBattle = {
             },
             explodeDmg: function(){
                 var damageAmt = autoBattle.enemy.dmgTaken;
-                if (autoBattle.items.Doppelganger_Diadem.equipped && autoBattle.trimp.doppLives == 1) damageAmt *= 2;
+                if (autoBattle.items.Doppelganger_Diadem.equipped && autoBattle.trimp.doppLives == 1) damageAmt *= 3;
                 return damageAmt;
             },
             doStuff: function(){

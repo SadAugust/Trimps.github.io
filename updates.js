@@ -200,7 +200,7 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 				costText += " Info</span>"
 			}
 			costText += "<span onclick='Fluffy.pat()' id='fluffyPatBtn' style='display: " + ((Fluffy.cruffysTipActive()) ? "none" : "inline-block") + "' class='btn btn-lg btn-warning'>Pat</span>";
-			if (game.global.universe == 2 && game.global.u2SpireCells > 0){
+			if (game.global.universe == 2 && game.global.u2SpireCellsBest > 0){
 				costText += "<span onclick='scruffySpireStory()' class='btn btn-lg btn-info'>Ask About Stuffy's Spire</span>"
 			}
 			openTooltip = "Fluffy";
@@ -6972,7 +6972,7 @@ function toggleSetting(setting, elem, fromPortal, updateOnly, backwards, fromHot
 			w220: "The mutation seems to show no signs of letting up, and neither do the urges of your Trimps to roll around in the goop.",
 			w225: "You've finally stumbled upon the massive pile of rubble that must have been Scruffy's Spire. You can tell he's ashamed for letting Fluffy take the fall for making the tower fall, but you reassure him that nothing good would have come from him being caged as well. You tell him you're glad he's here to help you, and give him a couple pats.",
 			w231: "Scruffy seems to be mostly back to his old self, and has even started playing the Riflunger again. You have to admit he's improving, the sound now barely even makes you want to fill your ears with sand!",
-			w237: "Three Trimps tried taming two tempermental Titimps. They thought Titimps treasured trash, thus they took turns throwing things toward the Titimps. The tormented and thoroughly terrified Titimps trapped the Trimps, took their tools, then took to the trail.",
+			w237: "Three Trimps tried taming two tempermental Titimps. They thought Titimps treasured trash, thus they took turns throwing things toward the Titimps. Thoroughly terrified, the tormented Titimps trapped the Trimps, took their tools, then took to the trail.",
 			w243: "You spot Stuffy sneaking around the camp, and decide to engage sneak mode yourself to see what he's up to. However you're not very good at sneak mode, and he quickly notices you and scurries off.",
 			w251: "Oh goodness, there are two different Mutations on this Zone! Scruffy warns you that multiple mutations can affect the same enemy, leading to some crazy combinations. You're split on how you feel about this. On one hand, the mutated enemies are monstrous and the goop is clearly not natural, but on the other hand the colors look pretty cool. You'll have to reflect on this for a bit.",
 			w257: "You're relaxing at the end of a Zone, minding your own business, when suddenly you hear a loud explosion in the direction of the camp. You run over to assess the damage and assist Scruffy in calming the frantic Trimps. As you look around, you see a message written on a nearby rock that says \"Stuffy was here\".",

@@ -26,7 +26,7 @@ var toReturn = {
 		//Leave 'version' at 4.914 forever, for compatability with old saves
 		version: 4.914,
 		isBeta: true,
-		betaV: 0,
+		betaV: 2,
 		killSavesBelow: 0.13,
 		uniqueId: new Date().getTime() + "" + Math.floor(Math.random() * 1e10),
 		playerGathering: "",
@@ -7993,14 +7993,17 @@ var toReturn = {
 			metalDrop: {
 				name: "Metal Drop Rate",
 				currentBonus: 0,
+				maxTier: 11
 			},
 			foodDrop: {
 				name: "Food Drop Rate",
 				currentBonus: 0,
+				maxTier: 11
 			},
 			woodDrop: {
 				name: "Wood Drop Rate",
 				currentBonus: 0,
+				maxTier: 11
 			},
 			gemsDrop: {
 				name: "Gem Drop Rate",
@@ -8013,14 +8016,17 @@ var toReturn = {
 			FarmerSpeed: {
 				name: "Farmer Efficiency",
 				currentBonus: 0,
+				maxTier: 11
 			},
 			LumberjackSpeed: {
 				name: "Lumberjack Efficiency",
 				currentBonus: 0,
+				maxTier: 11
 			},
 			MinerSpeed: {
 				name: "Miner Efficiency",
 				currentBonus: 0,
+				maxTier: 11
 			},
 			DragimpSpeed: {
 				name: "Dragimp Efficiency",
@@ -8033,6 +8039,21 @@ var toReturn = {
 			ScientistSpeed: {
 				name: "Scientist Efficiency",
 				currentBonus: 0,
+			},
+			allMetal: {
+				name: "Metal Drop and Efficiency",
+				currentBonus: 0,
+				minTier: 12
+			},
+			allFood: {
+				name: "Food Drop and Efficiency",
+				currentBonus: 0,
+				minTier: 12
+			},
+			allWood: {
+				name: "Wood Drop and Efficiency",
+				currentBonus: 0,
+				minTier: 12
 			},
 			FluffyExp: {
 				heirloopy: true,
@@ -8061,7 +8082,7 @@ var toReturn = {
 			playerEfficiency: {
 				name: "Player Efficiency",
 				currentBonus: 0,
-				steps: [[8,16,1],[8,16,1],[8,16,1],[16,32,2],[32,64,4],[64,128,8],[128,256,16],[256,512,32],[512,1024,64],[1024,2048,128],[2048,4096,256],[4096,8192,512],[8192,16384,1024]]
+				steps: [[8,16,1],[8,16,1],[8,16,1],[16,32,2],[32,64,4],[64,128,8],[128,256,16],[256,512,32],[512,1024,64],[1024,2048,128],[2048,4096,256],[4096,8192,512],-1]
 			},
 			trainerEfficiency: {
 				name: "Trainer Efficiency",
@@ -8162,12 +8183,13 @@ var toReturn = {
 			},
 			doubleCrit: {
 				name: "Double Crit",
+				noScaleU2: true,
 				currentBonus: 0,
 				specialDescription: function(){
 					return "Gives your Trimps this chance to crit for 1 tier higher than they would have."
 				},
-				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[1,5,0.1]],
-				max:[0,0,0,0,0,0,0,0,0,0,0,0,150]
+				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[0.1,0.5,0.01]],
+				max:[0,0,0,0,0,0,0,0,0,0,0,0,15]
 			},
 			empty: {
 				name: "Empty",
@@ -11339,6 +11361,7 @@ var toReturn = {
 			specialFilter: function (){
 				return checkIfSpireWorld();
 			},
+			blockU2: true,
 			title: "Spire Metal",
 			icon: "*safe",
 			addClass: "spireMetals"

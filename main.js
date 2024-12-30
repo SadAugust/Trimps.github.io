@@ -1069,7 +1069,69 @@ function load(saveString, autoLoad, fromPf) {
 	}
 	//End compatibility
 	//Test server only
-
+	if (betaV < 1){
+		for (var x = 0; x < game.global.heirloomsCarried.length; x++){
+			var heirloom = game.global.heirloomsCarried[x];
+			if (heirloom.type != "Shield" || heirloom.rarity != 12) continue;
+			for (var y = 0; y < heirloom.mods.length; y++){
+				var mod = heirloom.mods[y];
+				if (mod[0] != 'doubleCrit') continue;
+				mod[1]/=10
+			}
+		}
+		for (var x = 0; x < game.global.heirloomsExtra.length; x++){
+			var heirloom = game.global.heirloomsExtra[x];
+			if (heirloom.type != "Shield" || heirloom.rarity != 12) continue;
+			for (var y = 0; y < heirloom.mods.length; y++){
+				var mod = heirloom.mods[y];
+				if (mod[0] != 'doubleCrit') continue;
+				mod[1]/=10
+			}
+		}
+		if (game.global.ShieldEquipped.rarity == 12){
+			for (var y = 0; y < game.global.ShieldEquipped.mods.length; y++){
+				var mod = game.global.ShieldEquipped.mods[y];
+				if (mod[0] != 'doubleCrit') continue;
+				mod[1]/=10
+			}
+		}
+	}
+	if (betaV < 2){
+		for (var x = 0; x < game.global.heirloomsCarried.length; x++){
+			var heirloom = game.global.heirloomsCarried[x];
+			if (heirloom.type != "Shield" || heirloom.rarity != 12) continue;
+			for (var y = 0; y < heirloom.mods.length; y++){
+				var mod = heirloom.mods[y];
+				if (mod[0] != 'playerEfficiency') continue;
+				mod[0] = 'empty';
+				mod[1] = 0;
+				mod[2] = 0;
+				mod[3] = 0;
+			}
+		}
+		for (var x = 0; x < game.global.heirloomsExtra.length; x++){
+			var heirloom = game.global.heirloomsExtra[x];
+			if (heirloom.type != "Shield" || heirloom.rarity != 12) continue;
+			for (var y = 0; y < heirloom.mods.length; y++){
+				var mod = heirloom.mods[y];
+				if (mod[0] != 'playerEfficiency') continue;
+				mod[0] = 'empty';
+				mod[1] = 0;
+				mod[2] = 0;
+				mod[3] = 0;
+			}
+		}
+		if (game.global.ShieldEquipped.rarity == 12){
+			for (var y = 0; y < game.global.ShieldEquipped.mods.length; y++){
+				var mod = game.global.ShieldEquipped.mods[y];
+				if (mod[0] != 'playerEfficiency') continue;
+				mod[0] = 'empty';
+				mod[1] = 0;
+				mod[2] = 0;
+				mod[3] = 0;
+			}
+		}
+	}
 	//End test server only
 	//Temporary until next patch
 
@@ -6407,6 +6469,11 @@ function getHeirloomBonus(type, mod){
 	if (!game.heirlooms[type] || !game.heirlooms[type][mod]){
 		console.log('oh noes', type, mod)
 	}
+	if (game.global.StaffEquipped.rarity >= 12){
+		if (mod == "metalDrop" || mod == "MinerSpeed") mod = "allMetal";
+		if (mod == "woodDrop" || mod == "LumberjackSpeed") mod = "allWood";
+		if (mod == "foodDrop" || mod == "FarmerSpeed") mod = "allFood";
+	}
 	var bonus = game.heirlooms[type][mod].currentBonus;
 	if (mod == "gammaBurst" && game.global.ShieldEquipped && game.global.ShieldEquipped.rarity >= 10){
 		bonus = game.global.gammaMult;
@@ -7434,6 +7501,8 @@ function buildModOptionDdl(type, rarity, selectedMod){
 		if (checkSelectedModsFor(item)) continue;
 		var thisMod = game.heirlooms[type][item];
 		if (thisMod.steps && thisMod.steps[rarity] === -1) continue;
+		if (thisMod.minTier && rarity < thisMod.minTier) continue;
+		if (thisMod.maxTier && rarity > thisMod.maxTier) continue;
 		if (typeof thisMod.filter !== 'undefined' && !thisMod.filter()) continue;
 		html += '<option value="' + item + '">' + thisMod.name + '</option>';
 	}
@@ -7533,6 +7602,8 @@ function createHeirloom(zone, fromBones, spireCore, forceBest){
 	for (var item in game.heirlooms[type]){
 		var heirloom = game.heirlooms[type][item];
 		if (item == "empty" && (rarity == 0 || rarity == 1)) continue;
+		if (heirloom.minTier && rarity < heirloom.minTier) continue;
+		if (heirloom.maxTier && rarity > heirloom.maxTier) continue;
 		if (typeof heirloom.filter !== 'undefined' && !heirloom.filter()) continue;
 		if (heirloom.steps && heirloom.steps[rarity] === -1) continue;
 		eligible.push(item);
@@ -12373,6 +12444,7 @@ function rewardLiquidZone(){
 }
 
 function checkIfLiquidZone(){
+	if (game.options.menu.liquification.enabled == 0 || game.global.challengeActive == "Obliterated" || game.global.challengeActive == "Eradicated") return false;
 	if (game.global.universe == 2) {
 		if (!u2Mutations.tree.Liq1.purchased) return;
 		var amt = 0.1;
@@ -12380,7 +12452,6 @@ function checkIfLiquidZone(){
 		if (game.global.world > ((getHighestLevelCleared(false, true) + 1) * amt)) return false;
 		return true;
 	}
-	if (game.options.menu.liquification.enabled == 0 || game.global.challengeActive == "Obliterated" || game.global.challengeActive == "Eradicated") return false;
 	var spireCount = game.global.spiresCompleted;
 	if (game.talents.liquification.purchased) spireCount++;
 	if (game.talents.liquification2.purchased) spireCount++;
@@ -12704,10 +12775,12 @@ function checkMapAtZoneWorld(runMap){
 	else nextCell += 2;
 	var currentSetting = game.options.menu.mapAtZone.getSetZone();
 	var totalPortals = getTotalPortals();
+	var doneStr = totalPortals + "_" + game.global.world + "_" + nextCell;
+	if (game.global.universe == 2 && game.global.spireActive) doneStr += "_" + game.global.spireLevel;
 	if (game.options.menu.mapAtZone.enabled && game.global.canMapAtZone && !game.global.preMapsActive){
 		for (var x = 0; x < currentSetting.length; x++){
 			if (x >= game.options.menu.mapAtZone.getMaxSettings()) break;
-			if (currentSetting[x].done == totalPortals + "_" + game.global.world + "_" + nextCell) continue;
+			if (currentSetting[x].done == doneStr) continue;
 			if (currentSetting[x].through < game.global.world) continue;
 			var nextRepeat = false;
 			if (currentSetting[x].times > -1){
@@ -12718,7 +12791,7 @@ function checkMapAtZoneWorld(runMap){
 			}
 			if (currentSetting[x].on !== false && (nextRepeat || game.global.world == currentSetting[x].world) && ((!currentSetting[x].cell && nextCell == 1) || nextCell == currentSetting[x].cell)){
 				if (runMap){
-					currentSetting[x].done = totalPortals + "_" + game.global.world + "_" + nextCell;
+					currentSetting[x].done = doneStr;
 					runMapAtZone(x);
 					return true;
 				}
@@ -13177,13 +13250,13 @@ function getSpireStory(spireNum, row, getAll){
 			r400: "One more Floor, one more Stabilizer. Only one Floor from the halfway point now, you're really making a dent in this Spire! Just as you were escaping the evaporating Floor, you found a strange blue orb and naturally you grabbed it. It didn't seem to react to your touch, but when you tossed it to a nearby Trimp it released an intense burst of energy and caused all your Trimps to look a bit stronger. Your Trimps permanently gained +10% Crit Chance!", //+10% crit
 			r407: "The Mutation grows...",
 			r430: "You ask Scruffy what actually happens if 10 groups of Trimps die here, and he reveals that he actually teleports you out himself. You ask why, and he tells you it's better not to waste time on an impossible task.",
-			r460: "After some thought about your last conversation with Scruffy, you approach him and ask if he could at least hold off on the teleport if you're like really close to finishing Scruffy off or something. He tells you only a clean kill will suffice.",
+			r460: "After some thought about your last conversation with Scruffy, you approach him and ask if he could at least hold off on the teleport if you're like really close to finishing Stuffy off or something. He tells you only a clean kill will suffice.",
 			r470: "You lost all your Trimps! Oh no wait there they are.",
 			r490: "Just as you expected, there's another Stabilizer on this Floor, and you have located it with your eyeballs.",
 			r500: "Scruffy congratulates you on destroying half of Stuffy's Spire! He has a good laugh thinking about how mad Stuffy must be. After waiting an uncomfortable amount of time for him to stop laughing, you ask if he knows anything about this strange device you found at the end of the last Floor. He pushes a button on it, straps it on his arm, and tells you that the bonus Attack, Health and Radon your Trimps were gaining from this Spire are all now doubled!", //2x basic
 			r507: "As Scruffy predicted, the Mutation continues to grow larger. Is it starting to look a little bit like a tree?",
 			r525: "You ask Scruffy where Mutations actually came from. He says that it must have been created after he and Fluffy rebelled so he doesn't know much, but that the seeds are extremely energy-dense.",
-			r560: "You spot Stuffy hiding behind an incredibly out of place looking bush and decide to just ask him why he's releasing all this Mutation on the planet he claims to love so much. He tells you he's making Nature stronger and that the planet would thank him if it could. Just as you were about to respond, both Stuffy and the bush vanished.",
+			r560: "You spot Stuffy hiding behind an incredibly out of place looking bush and decide to just ask him why he's releasing all this Mutation on the planet he claims to love so much. He tells you he's making Nature stronger and that the planet would thank him if it could. Just as you were about to respond, both Stuffy and the bush vanish.",
 			r590: "Is the Stabilizer on this Floor dancing on 8 legs or are the Spores just starting to get to you? Either way you should probably go break that thing.",
 			r600: "As you emerge from the non-existent space of the previous Floor, you take in a deep Spore-free breath and pat yourself on the back. Out of the corner of your eye you notice a small yellow shard, and touching it fills you with ancient knowledge allowing you to gain an extra 20% Nullifium when recycling Heirlooms!", //Needs reward
 			r607: "The Mutation continues to grow and organize. You let out a deep sigh thinking about how many Spores will be in the air at the end of this Floor.",
