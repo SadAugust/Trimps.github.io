@@ -1171,9 +1171,9 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 		elem.style.top = "25%";
 	}
 	if (what == "Stuffy's Spire"){
-		tooltipText = "<span class='planetBreakMessage'>Stuffy's Spire looms menacingly above you, and you take in a deep breath of a new Mutation. You take a look back at your Trimps to help gather some courage, and you push the door open. You slowly walk inside and are greeted by an incredibly loud, deep, augmented Trimp voice.<br/><br/><b>Oh what a surprise! The betrayer and his little pet and their army of little pets are here on my doorstep. You may have numbers on your side, but I have Nature on mine. You will not take this Spire!</b></span>";
+		tooltipText = "<span class='planetBreakMessage'>Stuffy's Spire looms menacingly above you, and you take in a deep breath of a new Mutation. You take a look back at your Trimps to help gather some courage, and you push the door open. You slowly walk inside and are greeted by an incredibly loud, deep, augmented Trimp voice.<br/><br/><b>Oh what a surprise! Scruffy the Betrayer and his little pet and their army of little pets are here on my doorstep. You may have numbers on your side, but I have Nature on mine. You will not take this Spire!</b></span>";
 		tooltipText += "<br/><hr/><span class='planetBreakDescription'><span class='bad'>OK, you know the deal. It's a Spire, it's hard, and you have 10 lives. But there's a twist! Each 100 cells is only one Floor of this massive 1000 cell behemoth of a Spire, and you'll need to reach the top of Floor 10 to face Stuffy himself. Also attacking or killing any 'Natural' enemies while in here will release toxic spores, producing similar effects as the Nova mutation for the rest of the Floor.</span>";
-		tooltipText += "<span class='good'> However each cell cleared in this Spire grants +0.1% Trimp Attack, Health, and Radon gain until the next Portal. Completing a whole Floor grants a permanent +10% to all 3 stats, and will cause you to skip that Floor on all following Portals.</span></span>"
+		tooltipText += "<span class='good'> However each cell cleared in this Spire grants a compounding 0.5% bonus to Trimp Attack, Health, and Radon gain until the next Portal. Completing a whole Floor causes all bonuses earned from that Floor to be permanent, and will cause you to skip that Floor on all following Portals. You've also unlocked the ability to use a custom Equality Scaling preset on the Spire!</span></span>"
 		costText = "<div class='maxCenter'><div class='btn btn-info' onclick='startSpire(true)'>Stuffy Awaits</div></div>";
 		game.global.lockTooltip = true;
 		elem.style.left = "33.75%";
@@ -1507,8 +1507,9 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 		}
 	}
 	if (what == "Scale Equality Scaling"){
-		var state = game.portal.Equality.scalingActive ? "On" : "Off";
-		if (textString) tooltipText = '<div style="font-size: 1.7vh"><div class="maxCenter"><div style="width: 50%; margin-left: 25%" role="button" class="noselect pointer portalThing thing perkColorOff changingOff equalityColor' + state + '" id="equalityScaling2" onclick="toggleEqualityScale()"><span class="thingName">Scale Equality</span><br><span class="thingOwned"><span id="equalityScalingState2">' + state + '</span></span></div></div><br/>';
+		var state = game.portal.Equality.getSetting('scalingActive', equalitySlidersTip) ? "On" : "Off";
+
+		if (textString) tooltipText = '<div style="font-size: 1.7vh"><div class="maxCenter"><div style="width: 50%; margin-left: 25%" role="button" class="noselect pointer portalThing thing perkColorOff changingOff equalityColor' + state + '" id="equalityScaling2" onclick="toggleEqualityScale(true)"><span class="thingName">Scale Equality</span><br><span class="thingOwned"><span id="equalityScalingState2">' + state + '</span></span></div></div><br/>';
 		else tooltipText = "";
 		tooltipText += getEqualitySliders();
 		if (textString) tooltipText += "</div>";
@@ -1516,14 +1517,19 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 		elem.style.left = "4.5%";
 		elem.style.top = "1%";
 		swapClass('tooltipExtra', 'tooltipExtraEquality', elem);
-		costText = "<div class='maxCenter'><div class='btn btn-info' id='confirmTooltipBtn' onclick='cancelTooltip()'>Done</div></div>";
+		var spireBtn = "";
+		if (game.global.highestRadonLevelCleared >= 299) {
+			spireBtn = "<span id='spireEqualityToggle' onclick='toggleSpireEquality(" + textString + ")' class='btn btn-primary'>" + ((equalitySlidersTip == 'reg') ? "Show Spire Settings" : "Show Regular Settings") + "</span>";
+			what += (equalitySlidersTip == 'reg') ? " (Regular Settings)" : " (Spire Settings)";
+		}
+		costText = "<div class='maxCenter'><div class='btn btn-info' id='confirmTooltipBtn' onclick='cancelTooltip()'>Done</div>" + spireBtn + "</div>";
 		ondisplay = function(){
 			verticalCenterTooltip();
 		}
 	}
 	if (what == "Equality Scaling"){
 		var activeLevels = game.portal.Equality.getActiveLevels();
-		tooltipText = "<p>You can enable or disable Equality Scaling at any time.</p><p>With Equality Scaling On, each Portal starts with 0 levels of Equality active. If a group of Trimps dies after attacking <b>" + game.portal.Equality.scalingSetting + "</b> or fewer time" + needAnS(game.portal.Equality.scalingSetting) + ", one level of Equality will activate, up to your purchased level of Equality.";
+		tooltipText = "<p>You can enable or disable Equality Scaling at any time.</p><p>With Equality Scaling On, each Portal starts with 0 levels of Equality active. If a group of Trimps dies after attacking <b>" + game.portal.Equality.getSetting('scalingSetting') + "</b> or fewer time" + needAnS(game.portal.Equality.getSetting('scalingSetting')) + ", one level of Equality will activate, up to your purchased level of Equality.";
 		tooltipText += "</p><p><b>You currently have " + activeLevels + " stack" + needAnS(activeLevels) + " of Equality active.</b></p>";
 		if (!textString) tooltipText += "<p><b>Ctrl Click this button to customize your Equality settings.</b></p>"
 		else tooltipText += "<p>(Hotkey: E)</p>"
@@ -1759,21 +1765,29 @@ function updateMazPreset(index){
 	swapClass('mazTx', newClass, row);
 }
 
+var equalitySlidersTip = "reg";
+function toggleSpireEquality(useBtn){
+	equalitySlidersTip = (equalitySlidersTip == "reg") ? "spire" : "reg";
+	cancelTooltip();
+	tooltip('Scale Equality Scaling', null, 'update', useBtn)
+}
 function getEqualitySliders(short){
 	var text = "";
 	if (!short) text += "Change this Slider to change the maximum amount of attacks Trimps need to make in order to not trigger Equality Scaling. Setting this slider to 0 will increase scaling whenever a group of Trimps is one-shot, 1 will increase if Trimps attack one or fewer times, 5 will only increase if they attack 5 or fewer times, etc.<br/><br/>";
-	text += "<b>Your current setting is <span id='equalityCurrentScale'>" + game.portal.Equality.scalingSetting + "</span>.</b>";
-	text += "<br/><input oninput='scaleEqualityScale(this)' onchange='scaleEqualityScale(this)' type='range' id='scaleEqualitySlider' min='0' max='10' value='" + game.portal.Equality.scalingSetting + "' />";
+	text += "<b>Your current setting is <span id='equalityCurrentScale'>" + game.portal.Equality.getSetting('scalingSetting', equalitySlidersTip) + "</span>.</b>";
+	text += "<br/><input oninput='scaleEqualityScale(this)' onchange='scaleEqualityScale(this)' type='range' id='scaleEqualitySlider' min='0' max='10' value='" + game.portal.Equality.getSetting('scalingSetting', equalitySlidersTip) + "' />";
 	if (!short) text += "<br/>If Reversing is allowed, Equality stacks will also decrease after the set amount of attacks against the same bad guy.<br/><br/>";
-	text += buildNiceCheckbox("equalityReversing", null, game.portal.Equality.scalingReverse, "scaleEqualityScale(this, \"reverse\")") + " Allow Reversing<br/><b>Your current reversing setting is <span id='equalityCurrentScaleReverse'>" + game.portal.Equality.reversingSetting + "</span>.</b><br/><input oninput='scaleEqualityScale(this)' onchange='scaleEqualityScale(this)' type='range' id='scaleEqualitySliderReverse' min='1' max='10' value='" + game.portal.Equality.reversingSetting + "' />"
-	var disabledStackCount = game.portal.Equality.disabledStackCount;
+	text += buildNiceCheckbox("equalityReversing", null, game.portal.Equality.getSetting('scalingReverse', equalitySlidersTip), "scaleEqualityScale(this, \"reverse\")") + " Allow Reversing<br/><b>Your current reversing setting is <span id='equalityCurrentScaleReverse'>" + game.portal.Equality.getSetting('reversingSetting', equalitySlidersTip) + "</span>.</b><br/><input oninput='scaleEqualityScale(this)' onchange='scaleEqualityScale(this)' type='range' id='scaleEqualitySliderReverse' min='1' max='10' value='" + game.portal.Equality.getSetting('reversingSetting', equalitySlidersTip) + "' />"
+	var disabledStackCount = game.portal.Equality.getSetting('disabledStackCount', equalitySlidersTip);
 	var max = (game.portal.Equality.radLevel + 1);
 	var stackText = disabledStackCount;
 	if (disabledStackCount == -1){
 		stackText = "Max (" + game.portal.Equality.radLevel + ")";
 		disabledStackCount = max;
 	}
-	if (!short) text += "<br/>You can also manually set how many stacks of Equality should be used if Scaling is disabled by changing the slider below. This allows you to customize exactly how many stacks of Equality to use without having to respec your Perks.<br/><br/>";
+	var spireNote = "";
+	if (equalitySlidersTip == "spire") spireNote = "<span style='color: #AD2A2A; font-weight: bold'> If Scale Equality is on, this setting will determine how many stacks to start the Spire with.</span>"
+	if (!short) text += "<br/>You can also manually set how many stacks of Equality should be used if Scaling is disabled by changing the slider below. This allows you to customize exactly how many stacks of Equality to use without having to respec your Perks." + spireNote + "<br/><br/>";
 	text += "<b>Your Equality stacks when Scaling is disabled will be <span id='equalityDisabledStackCount'>" + stackText + "</span>.</b><input oninput='scaleEqualityScale(this)' onchange='scaleEqualityScale(this)' type='range' id='equalityDisabledSlider' min='0' max='" + max + "' value='" + disabledStackCount + "' />";
 	return text;
 }

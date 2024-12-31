@@ -986,8 +986,8 @@ function load(saveString, autoLoad, fromPf) {
 	}
 	if (compareVersion([5,5,0], oldStringVersion)){
 		if (game.global.challengeActive == "Archaeology" && game.global.world >= 91) game.challenges.Archaeology.onComplete();
-		game.portal.Equality.reversingSetting = game.portal.Equality.scalingSetting + 1;
-		if (game.portal.Equality.reversingSetting > 10) game.portal.Equality.reversingSetting = 10;
+		savegame.portal.Equality.reversingSetting = savegame.portal.Equality.scalingSetting + 1;
+		if (savegame.portal.Equality.reversingSetting > 10) savegame.portal.Equality.reversingSetting = 10;
 		addNewFeats([10,11,19,20,21,22], true);
 		checkAchieve("zones2");
 		checkAchieve("totalRadon");
@@ -1130,6 +1130,15 @@ function load(saveString, autoLoad, fromPf) {
 				mod[2] = 0;
 				mod[3] = 0;
 			}
+		}
+	}
+	if (betaV < 3){
+		game.portal.Equality.settings.reg = {
+			scalingActive: savegame.portal.Equality.scalingActive,
+			scalingSetting: savegame.portal.Equality.scalingSetting,
+			reversingSetting: savegame.portal.Equality.reversingSetting,
+			scalingReverse: savegame.portal.Equality.scalingActive,
+			disabledStackCount: savegame.portal.Equality.disabledStackCount
 		}
 	}
 	//End test server only
@@ -2398,7 +2407,7 @@ function displayPortalUpgrades(fromTab){
 		else html += '<br/><span class="thingOwned">Lv:&nbsp;<span id="' + what + 'Owned">' + ((game.options.menu.formatPerkLevels.enabled) ? prettify(level) : level) + '</span>';
 		html += '</span></div>';
 		if (what == "Equality"){
-			var state = game.portal.Equality.scalingActive ? "On" : "Off";
+			var state = game.portal.Equality.getSetting('scalingActive') ? "On" : "Off";
 			html += '<div role="button" onmouseover="tooltip(\'Equality Scaling\', null, event)" onmouseout="tooltip(\'hide\')" class="' + htmlClass + ' equalityColor' + state + '" id="equalityScaling" onclick="toggleEqualityScale()"><span class="thingName">Scale Equality</span><br/><span class="thingOwned"><span id="equalityScalingState">' + state + '</span>';
 			if (game.options.menu.detailedPerks.enabled) html += "<br/>&nbsp;<br/>&nbsp;";
 			html += "</span></div>";
@@ -2409,14 +2418,15 @@ function displayPortalUpgrades(fromTab){
 	}
 }
 
-function toggleEqualityScale(){
+function toggleEqualityScale(fromTip){
 	if (ctrlPressed){
 		tooltip('Scale Equality Scaling', null, 'update');
 		return;
 	}
-	game.portal.Equality.scalingActive = !game.portal.Equality.scalingActive;
+	var settingLoc = (fromTip) ? equalitySlidersTip : false;
+	game.portal.Equality.setSetting('scalingActive', settingLoc, !game.portal.Equality.getSetting('scalingActive', settingLoc))
 	manageEqualityStacks();
-	updateEqualityScaling();
+	updateEqualityScaling(fromTip);
 }
 
 function manageEqualityStacks(){
@@ -2438,7 +2448,7 @@ function manageEqualityStacks(){
 		text += " and Enemies by " + prettifyTiny(enemyMult);
 	}
 
-	if (game.global.universe == 2 && !game.portal.Equality.radLocked && game.portal.Equality.scalingActive){
+	if (game.global.universe == 2 && !game.portal.Equality.radLocked && game.portal.Equality.getSetting('scalingActive')){
 		swapClass('equalityTabScaling', 'equalityTabScalingOn', tabElem);
 		tabTextElem.innerHTML = "Equality (Scaling On)";
 		text += ". Scaling is on.";
@@ -2454,25 +2464,24 @@ function manageEqualityStacks(){
 
 function scaleEqualityScale(slider, whatDo){
 	if (whatDo == "reverse"){
-		game.portal.Equality.scalingReverse = !game.portal.Equality.scalingReverse;
+		game.portal.Equality.setSetting('scalingReverse', equalitySlidersTip, !game.portal.Equality.getSetting('scalingReverse', equalitySlidersTip))
 		return;
 	}
 	var val = slider.value;
 	var textElem;
 	if (slider.id == "scaleEqualitySlider"){
 		if (!(val >= 0) || !(val <= 10)) val = 5;
-		game.portal.Equality.scalingSetting = val;
+		game.portal.Equality.setSetting('scalingSetting', equalitySlidersTip, val);
 		textElem = document.getElementById('equalityCurrentScale');
-		
 	}
 	else if (slider.id == "scaleEqualitySliderReverse"){
 		if (!(val >= 0) || !(val <= 10)) val = 5;
-		game.portal.Equality.reversingSetting = val;
+		game.portal.Equality.setSetting('reversingSetting', equalitySlidersTip, val);
 		textElem = document.getElementById('equalityCurrentScaleReverse')
 	}
 	else if (slider.id == "equalityDisabledSlider"){
 		if (!(val >= 0) || !(val <= game.portal.Equality.radLevel)) val = -1;
-		game.portal.Equality.disabledStackCount = val;
+		game.portal.Equality.setSetting('disabledStackCount', equalitySlidersTip, val);
 		if (val == -1) val = "Max (" + game.portal.Equality.radLevel + ")";
 		textElem = document.getElementById('equalityDisabledStackCount');
 		manageEqualityStacks();
@@ -2480,13 +2489,14 @@ function scaleEqualityScale(slider, whatDo){
 	if (textElem) textElem.innerHTML = val;
 }
 
-function updateEqualityScaling(){
+function updateEqualityScaling(fromTip){
+	var settingLoc = (fromTip) ? equalitySlidersTip : false;
 	var suffix = (game.global.viewingUpgrades || portalWindowOpen) ? "" : "2";
 	if (usingRealTimeOffline) suffix = "3";
 	var elem = document.getElementById("equalityScaling" + suffix);
 	if (!elem) return;
 	var stateElem = document.getElementById("equalityScalingState" + suffix);
-	if (game.portal.Equality.scalingActive){
+	if (game.portal.Equality.getSetting('scalingActive', settingLoc)){
 		stateElem.innerHTML = "On";
 		swapClass("equalityColor", "equalityColorOn", elem);
 	}
@@ -3695,7 +3705,8 @@ function commitPortalUpgrades(usingPortal){
 		portUpgrade.heliumSpentTemp = 0;
 	}
 	if (game.portal.Equality.scalingCount > game.portal.Equality.radLevel) game.portal.Equality.scalingCount = game.portal.Equality.radLevel;
-	if (game.portal.Equality.disabledStackCount > game.portal.Equality.radLevel) game.portal.Equality.disabledStackCount = game.portal.Equality.radLevel;
+	if (game.portal.Equality.settings.reg.disabledStackCount > game.portal.Equality.radLevel) game.portal.Equality.settings.reg.disabledStackCount = game.portal.Equality.radLevel;
+	if (game.portal.Equality.settings.spire.disabledStackCount > game.portal.Equality.radLevel) game.portal.Equality.settings.spire.disabledStackCount = game.portal.Equality.radLevel;
 	if (game.global.respecActive || game.global.viewingUpgrades){
 		if (portalUniverse == 1){
 			game.global.heliumLeftover = game.resources.helium.respecMax - game.resources.helium.totalSpentTemp;
@@ -13048,6 +13059,9 @@ function startSpire(confirmed){
 		if (game.global.universe == 2){
 			game.global.spireLevel = Math.floor(game.global.u2SpireCellsBest / 100) + 1;
 			if (game.global.spireLevel > 10) game.global.spireLevel = 10;
+			if (game.portal.Equality.settings.spire.scalingActive) game.portal.Equality.scalingCount = game.portal.Equality.settings.spire.disabledStackCount;
+			if (game.portal.Equality.scalingCount == -1) game.portal.Equality.scalingCount = game.portal.Equality.radLevel;
+			manageEqualityStacks();
 		}
 		setNonMapBox();
 		var spireSetting = game.options.menu.mapsOnSpire.enabled;
@@ -13105,12 +13119,16 @@ function finishU2Spire(){
 	setNonMapBox();
 	handleExitSpireBtn();
 	u2Mutations.types.Spire1.removeStacks();
+	manageEqualityStacks();
 }
 
 function deadInSpire(){
 	game.global.spireDeaths++;
 	if (game.global.spireDeaths >= 10) {
-		message("You're not yet ready. Maybe you'll be of use in the next lifetime (You made it to cell " + (game.global.lastClearedCell + 2) + ").", "Story");
+		var msgText = "";
+		if (game.global.universe == 2) msgText = "You're suddenly standing outside of the Spire with a feeling that it's best to move on for now. Scruffy seems confident that you'll get it next time! (You made it to Cell " + (game.global.lastClearedCell + 2) + " on Floor " + game.global.spireLevel + ")";
+		else msgText = "You're not yet ready. Maybe you'll be of use in the next lifetime (You made it to cell " + (game.global.lastClearedCell + 2) + ")."
+		message(msgText, "Story");
 		endSpire();
 		return;
 	}
@@ -13321,7 +13339,7 @@ var u2SpireBonuses = {
 		if (game.global.universe != 2) return mult;
 		if (game.global.u2SpireCellsBest <= 0) return mult;
 		var credit = this.cellCredit();
-		mult = Math.pow(1.01, credit);
+		mult = Math.pow(1.005, credit);
 		if (game.global.u2SpireCellsBest >= 500) mult *= 2;
 		if (game.global.u2SpireCells >= 1000) mult *= 10;
 		return mult;
@@ -15599,11 +15617,11 @@ function fight(makeUp) {
 	if (game.global.soldierHealth > 0){
 		game.global.armyAttackCount++;
 	}
-	else if (game.portal.Equality.scalingActive && game.global.armyAttackCount <= game.portal.Equality.scalingSetting){
+	else if (game.portal.Equality.getSetting('scalingActive') && game.global.armyAttackCount <= game.portal.Equality.getSetting('scalingSetting')){
 		game.portal.Equality.scalingCount++;
 		manageEqualityStacks();
 	}
-	if (game.global.fightAttackCount > 0 && game.portal.Equality.scalingActive && game.portal.Equality.scalingReverse && game.global.fightAttackCount % game.portal.Equality.reversingSetting == 0 && game.global.armyAttackCount > game.portal.Equality.scalingSetting && cell.health > 0){
+	if (game.global.fightAttackCount > 0 && game.portal.Equality.getSetting('scalingActive') && game.portal.Equality.getSetting('scalingReverse') && game.global.fightAttackCount % game.portal.Equality.getSetting('reversingSetting') == 0 && game.global.armyAttackCount > game.portal.Equality.getSetting('scalingSetting') && cell.health > 0){
 		game.portal.Equality.scalingCount--;
 		manageEqualityStacks();
 	}

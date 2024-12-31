@@ -26,7 +26,7 @@ var toReturn = {
 		//Leave 'version' at 4.914 forever, for compatability with old saves
 		version: 4.914,
 		isBeta: true,
-		betaV: 2,
+		betaV: 3,
 		killSavesBelow: 0.13,
 		uniqueId: new Date().getTime() + "" + Math.floor(Math.random() * 1e10),
 		playerGathering: "",
@@ -2906,16 +2906,38 @@ var toReturn = {
 			},
 			getActiveLevels: function(){
 				var perkLevel = getPerkLevel("Equality");
-				if (this.scalingActive && this.scalingCount < perkLevel) return this.scalingCount;
-				if (!this.scalingActive && this.disabledStackCount > -1) return this.disabledStackCount;
+				if (this.getSetting('scalingActive') && this.scalingCount < perkLevel) return this.scalingCount;
+				if (!this.getSetting('scalingActive') && this.getSetting('disabledStackCount') > -1) return this.getSetting('disabledStackCount');
 				return perkLevel;
 			},
 			specialGrowth: 1.5,
-			scalingActive: false,
-			scalingSetting: 5,
-			reversingSetting: 5,
-			scalingReverse: true,
-			disabledStackCount: -1,
+			getObject: function(force){
+				if (force) return this.settings[force];
+				if (game.global.spireActive) return this.settings.spire;
+				return this.settings.reg;
+			},
+			getSetting: function(setting, force){
+				return this.getObject(force)[setting];
+			},
+			setSetting: function(setting,force,value){
+				this.getObject(force)[setting] = value;
+			},
+			settings: {
+				reg: {
+					scalingActive: false,
+					scalingSetting: 5,
+					reversingSetting: 5,
+					scalingReverse: true,
+					disabledStackCount: -1,
+				},
+				spire: {
+					scalingActive: false,
+					scalingSetting: 5,
+					reversingSetting: 5,
+					scalingReverse: true,
+					disabledStackCount: -1,
+				}
+			},
 			scalingCount: 0
 		},
 		Carpentry: {
