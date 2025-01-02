@@ -4889,7 +4889,7 @@ var u2Mutations = {
             }
         }
         text += "</div>"
-        text += "<div id='mutZoomButtons'><div id='mutZoomIn' onclick='u2Mutations.zoomClicked(-1);' onmouseover='tooltip(\"Zoom In\", \"customText\", event, \"Click this to Zoom In to the Mutators tree. You can also use mouse wheel to zoom, or click and drag the tree to move it around.\");' onmouseout='tooltip(\"hide\")'><span class='icomoon icon-zoom-in'></span></div><div id='mutZoomOut' onclick='u2Mutations.zoomClicked(1);' onmouseover='tooltip(\"Zoom Out\", \"customText\", event, \"Click this to Zoom Out of the Mutators tree. You can also use mouse wheel to zoom, or click and drag the tree to move it around.\");' onmouseout='tooltip(\"hide\")'><span class='icomoon icon-zoom-out'></span></div></div>";
+        text += "<div id='mutZoomButtons'><div id='mutZoomIn' onmouseover='tooltip(\"Mastery Info\", null, event);' onmouseout='tooltip(\"hide\")'>M</div><div id='mutZoomIn' onclick='u2Mutations.zoomClicked(-1);' onmouseover='tooltip(\"Zoom In\", \"customText\", event, \"Click this to Zoom In to the Mutators tree. You can also use mouse wheel to zoom, or click and drag the tree to move it around.\");' onmouseout='tooltip(\"hide\")'><span class='icomoon icon-zoom-in'></span></div><div id='mutZoomOut' onclick='u2Mutations.zoomClicked(1);' onmouseover='tooltip(\"Zoom Out\", \"customText\", event, \"Click this to Zoom Out of the Mutators tree. You can also use mouse wheel to zoom, or click and drag the tree to move it around.\");' onmouseout='tooltip(\"hide\")'><span class='icomoon icon-zoom-out'></span></div></div>";
         document.getElementById('mutTreeWrapper').innerHTML = text;
         this.open = true;
     },

@@ -183,6 +183,21 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 		elem.style.top = "25%";
 		noExtraCheck = true;
 	}
+	if (what == "Mastery Info"){
+		tooltipText = "U" + game.global.universe + " Masteries:<br/><br/>";
+		
+		var highTalent = (game.talents.blacksmith3.purchased) ? "blacksmith3" : (game.talents.blacksmith2.purchased) ? "blacksmith2" : (game.talents.blacksmith.purchased) ? "blacksmith" : "none";
+		if (highTalent == "none") tooltipText += "<b>Blacksmithery Not Purchased</b>";
+		else tooltipText += "<b>Blacksmithery</b><br/>" + game.talents[highTalent].description;
+		tooltipText += "<br/><br/>";
+		highTalent = (game.talents.hyperspeed2.purchased) ? "hyperspeed2" : (game.talents.hyperspeed.purchased) ? "hyperspeed" : "none";
+		if (highTalent == "none") tooltipText += "<b>Hyperspeed Not Purchased</b>";
+		else tooltipText += "<b>Hyperspeed</b><br/>" + game.talents[highTalent].description;
+		tooltipText += "<br/><br/>";
+		var liqCap = Math.floor(checkIfLiquidZone(true));
+		if (!liqCap) tooltipText += "<b>No Liquification in this Universe</b>";
+		else tooltipText += "<b>Liquification</b><br/>You can Liquify in this Universe through Z" + liqCap;
+	}
 	if (what == "Fluffy"){
 		if (event == 'update'){
 			//clicked
@@ -1172,7 +1187,7 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 	}
 	if (what == "Stuffy's Spire"){
 		tooltipText = "<span class='planetBreakMessage'>Stuffy's Spire looms menacingly above you, and you take in a deep breath of a new Mutation. You take a look back at your Trimps to help gather some courage, and you push the door open. You slowly walk inside and are greeted by an incredibly loud, deep, augmented Trimp voice.<br/><br/><b>Oh what a surprise! Scruffy the Betrayer and his little pet and their army of little pets are here on my doorstep. You may have numbers on your side, but I have Nature on mine. You will not take this Spire!</b></span>";
-		tooltipText += "<br/><hr/><span class='planetBreakDescription'><span class='bad'>OK, you know the deal. It's a Spire, it's hard, and you have 10 lives. But there's a twist! Each 100 cells is only one Floor of this massive 1000 cell behemoth of a Spire, and you'll need to reach the top of Floor 10 to face Stuffy himself. Also attacking or killing any 'Natural' enemies while in here will release toxic spores, producing similar effects as the Nova mutation for the rest of the Floor.</span>";
+		tooltipText += "<br/><hr/><span class='planetBreakDescription'><span class='bad'>OK, you know the deal. It's a Spire, it's hard, and you have 10 lives. But there's a twist! Each 100 cells is only one Floor of this massive 1000 cell behemoth of a Spire, and you'll need to reach the top of Floor 10 to face Stuffy himself. Also Tenacity is locked to 60 minutes while in the Spire and attacking or killing any 'Natural' enemies will release toxic spores, producing similar effects as the Nova mutation for the rest of the Floor.</span>";
 		tooltipText += "<span class='good'> However each cell cleared in this Spire grants a compounding 0.5% bonus to Trimp Attack, Health, and Radon gain until the next Portal. Completing a whole Floor causes all bonuses earned from that Floor to be permanent, and will cause you to skip that Floor on all following Portals. You've also unlocked the ability to use a custom Equality Scaling preset on the Spire!</span></span>"
 		costText = "<div class='maxCenter'><div class='btn btn-info' onclick='startSpire(true)'>Stuffy Awaits</div></div>";
 		game.global.lockTooltip = true;

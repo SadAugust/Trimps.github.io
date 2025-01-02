@@ -9748,7 +9748,7 @@ function getRandomBadGuy(mapSuffix, level, totalCells, world, imports, mutation,
 			return "Turkimp";
 		}
 	}
-	if (game.talents.magimp.purchased && mapSuffix != "Darkness" && !force){
+	if (!(!game.global.mapsActive && game.global.spireActive && game.global.universe == 2) && game.talents.magimp.purchased && mapSuffix != "Darkness" && !force){
 		var chance = 2 * (1 / (100 - 1 - (exoticChance * imports.length)));
 		chance = Math.round(chance * 100000);
 		var roll = getRandomIntSeeded(enemySeed++, 0, 100000);
@@ -12454,13 +12454,16 @@ function rewardLiquidZone(){
 	nextWorld();
 }
 
-function checkIfLiquidZone(){
+function checkIfLiquidZone(getNumber){
 	if (game.options.menu.liquification.enabled == 0 || game.global.challengeActive == "Obliterated" || game.global.challengeActive == "Eradicated") return false;
+	var liqCap = 0;
 	if (game.global.universe == 2) {
 		if (!u2Mutations.tree.Liq1.purchased) return;
 		var amt = 0.1;
 		if (u2Mutations.tree.Liq2.purchased) amt = 0.2;
-		if (game.global.world > ((getHighestLevelCleared(false, true) + 1) * amt)) return false;
+		liqCap = ((getHighestLevelCleared(false, true) + 1) * amt);
+		if (getNumber) return liqCap;
+		if (game.global.world > liqCap) return false;
 		return true;
 	}
 	var spireCount = game.global.spiresCompleted;
@@ -12469,7 +12472,9 @@ function checkIfLiquidZone(){
 	if (game.talents.liquification3.purchased) spireCount += 2;
 	spireCount += (Fluffy.isRewardActive("liquid") * 0.5);
 	var liquidAmount = ((spireCount) / 20);
-	if (game.global.world > ((getHighestLevelCleared(false, true) + 1) * liquidAmount) || checkIfSpireWorld()){
+	liqCap = ((getHighestLevelCleared(false, true) + 1) * liquidAmount);
+	if (getNumber) return liqCap;
+	if (game.global.world > liqCap || checkIfSpireWorld()){
 		return false;
 	}
 	return true;
