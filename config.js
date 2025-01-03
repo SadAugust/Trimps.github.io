@@ -8201,7 +8201,7 @@ var toReturn = {
 				specialDescription: function(){
 					return "Reduces the Equality penalty on your Trimps by this amount without changing Enemy reduction.";
 				},
-				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[50,200,0.25],[100,300,0.4]],
+				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[50,200,0.25],[99.9,300,0.3]],
 				max:[0,0,0,0,0,0,0,0,0,0,0,400,600]
 			},
 			doubleCrit: {
@@ -8211,8 +8211,8 @@ var toReturn = {
 				specialDescription: function(){
 					return "Gives your Trimps this chance to crit for 1 tier higher than they would have."
 				},
-				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[0.1,0.5,0.01]],
-				max:[0,0,0,0,0,0,0,0,0,0,0,0,15]
+				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[0.1,0.3,0.02]],
+				max:[0,0,0,0,0,0,0,0,0,0,0,0,20]
 			},
 			empty: {
 				name: "Empty",

@@ -184,7 +184,7 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 		noExtraCheck = true;
 	}
 	if (what == "Mastery Info"){
-		tooltipText = "U" + game.global.universe + " Masteries:<br/><br/>";
+		tooltipText = "U" + game.global.universe + " Masteries and Helpful Info:<br/><br/>";
 		
 		var highTalent = (game.talents.blacksmith3.purchased) ? "blacksmith3" : (game.talents.blacksmith2.purchased) ? "blacksmith2" : (game.talents.blacksmith.purchased) ? "blacksmith" : "none";
 		if (highTalent == "none") tooltipText += "<b>Blacksmithery Not Purchased</b>";
@@ -194,9 +194,20 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 		if (highTalent == "none") tooltipText += "<b>Hyperspeed Not Purchased</b>";
 		else tooltipText += "<b>Hyperspeed</b><br/>" + game.talents[highTalent].description;
 		tooltipText += "<br/><br/>";
-		var liqCap = Math.floor(checkIfLiquidZone(true));
-		if (!liqCap) tooltipText += "<b>No Liquification in this Universe</b>";
-		else tooltipText += "<b>Liquification</b><br/>You can Liquify in this Universe through Z" + liqCap;
+		var liqCap = checkIfLiquidZone(true);
+		if (!liqCap) tooltipText += "<b>Liquification not owned in this Universe</b>";
+		else tooltipText += "<b>Liquification</b><br/>You can Liquify in this Universe through Z" + Math.floor((getHighestLevelCleared(false, true) + 1) * liqCap) + " (" + Math.floor(liqCap * 100) + "% of your highest Zone reached).";
+		tooltipText += "<br/><br/>";
+		if ((game.global.universe == 1 && game.portal.Overkill.level == 0) || (game.global.universe == 2 && !u2Mutations.tree.Overkill1.purchased)) tooltipText += "<b>Overkill not owned in this Universe</b>";
+		else {
+			var okCells = getOverkillerCount(true) + 1;
+			tooltipText += "<b>Overkill</b><br/>You can Overkill " + okCells + " cell" + needAnS(okCells) + " in this Universe";
+			if (game.global.universe == 2){
+				var zmult = canU2Overkill(true);
+				tooltipText += " through Z" + Math.floor((game.global.highestRadonLevelCleared + 1) * zmult) + " (" + Math.floor(zmult  * 100) + "% of your highest Zone reached).";
+			}
+			else tooltipText += ".";
+		}
 	}
 	if (what == "Fluffy"){
 		if (event == 'update'){

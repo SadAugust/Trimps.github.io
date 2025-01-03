@@ -11104,20 +11104,7 @@ function startFight() {
 			}
 		}
 		if (cell.health < 1) {
-			var overkillerCount = 0;
-			if (game.global.universe == 1){
-				var overkillerCount = Fluffy.isRewardActive("overkiller");
-				if (game.talents.overkill.purchased) overkillerCount++;
-				if (getEmpowerment() == "Ice"){
-					if (game.empowerments.Ice.getLevel() >= 50) overkillerCount++;
-					if (game.empowerments.Ice.getLevel() >= 100) overkillerCount++;
-				}
-				if (getUberEmpowerment() == "Ice") overkillerCount += 2;
-			}
-			else {
-				overkillerCount = 0;
-				if (u2Mutations.tree.MaxOverkill.purchased && canU2Overkill()) overkillerCount++;
-			}
+			var overkillerCount = getOverkillerCount();;
 			if (cell.OKcount <= overkillerCount){
 				var nextCell = (game.global.mapsActive) ? game.global.mapGridArray[cellNum + 1] : game.global.gridArray[cellNum + 1];
 				if (nextCell){
@@ -11482,6 +11469,25 @@ function startFight() {
     game.global.fighting = true;
     game.global.lastFightUpdate = new Date();
 	if (instaFight) fight();
+}
+
+function getOverkillerCount(getNumber){
+	var overkillerCount = 0;
+	if (game.global.universe == 1){
+		overkillerCount = Fluffy.isRewardActive("overkiller");
+		if (game.talents.overkill.purchased) overkillerCount++;
+		if (getEmpowerment() == "Ice"){
+			if (game.empowerments.Ice.getLevel() >= 50) overkillerCount++;
+			if (game.empowerments.Ice.getLevel() >= 100) overkillerCount++;
+		}
+		if (getUberEmpowerment() == "Ice") overkillerCount += 2;
+	}
+	else {
+		if (!canU2Overkill() && !getNumber) return 0;
+		overkillerCount = 0;
+		if (u2Mutations.tree.MaxOverkill.purchased) overkillerCount++;
+	}
+	return overkillerCount;
 }
 
 function canU2Overkill(getMult){
@@ -12454,15 +12460,15 @@ function rewardLiquidZone(){
 	nextWorld();
 }
 
-function checkIfLiquidZone(getNumber){
+function checkIfLiquidZone(getMult){
 	if (game.options.menu.liquification.enabled == 0 || game.global.challengeActive == "Obliterated" || game.global.challengeActive == "Eradicated") return false;
 	var liqCap = 0;
 	if (game.global.universe == 2) {
 		if (!u2Mutations.tree.Liq1.purchased) return;
 		var amt = 0.1;
 		if (u2Mutations.tree.Liq2.purchased) amt = 0.2;
+		if (getMult) return amt;
 		liqCap = ((getHighestLevelCleared(false, true) + 1) * amt);
-		if (getNumber) return liqCap;
 		if (game.global.world > liqCap) return false;
 		return true;
 	}
@@ -12472,8 +12478,8 @@ function checkIfLiquidZone(getNumber){
 	if (game.talents.liquification3.purchased) spireCount += 2;
 	spireCount += (Fluffy.isRewardActive("liquid") * 0.5);
 	var liquidAmount = ((spireCount) / 20);
+	if (getMult) return liquidAmount;
 	liqCap = ((getHighestLevelCleared(false, true) + 1) * liquidAmount);
-	if (getNumber) return liqCap;
 	if (game.global.world > liqCap || checkIfSpireWorld()){
 		return false;
 	}
@@ -13099,7 +13105,7 @@ function handleExitSpireBtn(){
 function getSpireStats(cellNum, name, what, origAmt){
 	if (game.global.universe == 2){
 		//if (what == "attack") return origAmt * Math.pow(100, game.global.spireLevel + 1);
-		return origAmt * Math.pow(100, game.global.spireLevel + 1);
+		return origAmt * Math.pow(200, game.global.spireLevel + 1);
 	}
 	var base = (what == "attack") ? game.global.getEnemyAttack(100, null, true) : (game.global.getEnemyHealth(100, null, true) * 2);
 	var mod = (what == "attack") ? 1.17 : 1.14;
@@ -17906,10 +17912,10 @@ var Fluffy = {
 	prestigeExpModifier: 5,
 	currentExp: [],
 	damageModifiers: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 6.5],
-	damageModifiers2: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 25.5, 30.5, 38, 48, 61, 111, 171, 241, 321, 411, 511, 621, 741, 871, 1011, 1161, 1311, 1311],
+	damageModifiers2: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 25.5, 30.5, 38, 48, 61, 111, 171, 241, 321, 411, 511, 621, 741, 871, 1011, 1161, 1311, 1461, 1461],
 	rewards: ["stickler", "helium", "liquid", "purifier", "lucky", "void", "helium", "liquid", "eliminator", "overkiller"],
 	prestigeRewards: ["dailies", "voidance", "overkiller", "critChance", "megaCrit", "superVoid", "voidelicious", "naturesWrath", "voidSiphon", "plaguebrought"],
-	rewardsU2: ["trapper", "prism", "heirloopy", "radortle", "healthy", "wealthy", "critChance", "gatherer", "dailies", "exotic", "shieldlayer", "tenacity", "megaCrit", "critChance", "smithy", "biggerbetterheirlooms", "shieldlayer", "void", "moreVoid", "tenacity", "SADailies", "bigDust", "bigSeeds", "radortle2", "scruffBurst", "justdam", "justdam"],
+	rewardsU2: ["trapper", "prism", "heirloopy", "radortle", "healthy", "wealthy", "critChance", "gatherer", "dailies", "exotic", "shieldlayer", "tenacity", "megaCrit", "critChance", "smithy", "biggerbetterheirlooms", "shieldlayer", "void", "moreVoid", "tenacity", "SADailies", "bigDust", "bigSeeds", "radortle2", "scruffBurst", "tenacity", "justdam", "justdam"],
 	prestigeRewardsU2: [],
 	checkU2Allowed: function(){
 		if (game.global.universe == 2) return true;
