@@ -26,7 +26,7 @@ var toReturn = {
 		//Leave 'version' at 4.914 forever, for compatability with old saves
 		version: 4.914,
 		isBeta: true,
-		betaV: 3,
+		betaV: 4,
 		killSavesBelow: 0.13,
 		uniqueId: new Date().getTime() + "" + Math.floor(Math.random() * 1e10),
 		playerGathering: "",
@@ -1539,131 +1539,7 @@ var toReturn = {
 						if (times != -1 && times != 1 && times != 2 && times != 3 && times != 5 && times != 10 && times != 30 && times != -2) times = -1;
 						if (cell < 1) cell = 1;
 						if (cell > 100) cell = 100;
-						// for (var y = 0; y < setting.length; y++){
-						// 	//No reason to run if one finishes before the other starts
-						// 	if (through < setting[y].start || setting[y].through < world) continue;
-						// 	//Only run conflict detection if both presets match on cell
-						// 	if (setting[y].cell == cell){
-						// 		var errorText = " Preset " + (x + 1) + " and Preset " + (y + 1) + " would conflict with this setup."
-						// 		//If both presets repeat, check for conflicts
-						// 		if (times != -1 && setting[y].times != -1){
-						// 			//Repeat every zone always conflicts
-						// 			if (times == 1 || setting[y].times == 1){
-						// 				error += errorText;
-						// 				continue loop1;
-						// 			}
-						// 			//Repeat every 2 zones always conflicts with 1, 3, and 5. Conflicts with 2 and 10 if both starts are odd or even.
-						// 			else if (times == 2){
-						// 				//If preset y repeats every 2, 10 or 30, check that one world is odd and one is even
-						// 				if (setting[y].times == 10 || setting[y].times == 2 || setting[y].times == 30){
-						// 					if ((world % 2) == (setting[y].world % 2)){
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				//If preset y repeats at anything other than 0, 2, 10 or 30, it fails
-						// 				else {
-						// 					error += errorText;
-						// 					continue loop1;
-						// 				}
-						// 			}
-						// 			//Repeat every 3 zones always conflicts with anything that doesn't repeat every 3 or 30 zones
-						// 			else if (times == 3){
-						// 				//If both presets repeat every 3 zones, see if they would intersect
-						// 				if (setting[y].times == 3 || setting[y].times == 30){
-						// 					if (setting[y].world % 3 == world % 3) {
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				//If preset y repeats at anything other than 3, it will conflict
-						// 				else{
-						// 					error += errorText;
-						// 					continue loop1;
-						// 				}
-						// 			}
-						// 			//Repeat every 5 zones always conflicts with 1, 2, 3.
-						// 			else if (times == 5){
-						// 				//If preset y doesn't repeat, or repeats at 5 or 10 or 30, check if both worlds % 5 match
-						// 				if (setting[y].times == 5 || setting[y].times == 10 || setting[y].times == 30){
-						// 					var intersect = ((world - setting[y].world) % 5);
-						// 					if (intersect == 0) {
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				//Anything else fails
-						// 				else {
-						// 					error += errorText;
-						// 					continue loop1;
-						// 				}
-						// 			}
-						// 			//Repeat every 10 zones conflicts with 2 if both are even or odd, conflicts with 3 always, conflicts with 5 if both % 5 match, conflicts with 10 or 30 if both % 10 match
-						// 			//Repeat every 30 zones conflicts with 2 if both are even or odd, conflicts with 3 if both % 3 match, conflicts with 5 if both % 5 match, conflicts with 10 if both % 10 match, and 30 if both % 30 match
-						// 			else if (times == 10 || times == 30){
-						// 				if (setting[y].times == 2){
-						// 					if ((world % 2) == (setting[y].world % 2)){
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				//3 For 10
-						// 				else if (times == 10 && setting[y].times == 3){
-						// 					error += errorText;
-						// 					continue loop1;
-						// 				}
-						// 				//3 For 30
-						// 				else if (setting[y].times == 3){
-						// 					if (setting[y].world % 3 == world % 3){
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				else if (setting[y].times == 5){
-						// 					if ((world % 5) == (setting[y].world % 5)){
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				//10 for 10 and 30, and 30 for 10
-						// 				else if (setting[y].times == 10 || (setting[y].times == 30 && times == 10)){
-						// 					if ((world % 10) == (setting[y].world % 10)){
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 				else if (setting[y].times == 30){
-						// 					if ((world % 30) == (setting[y].world % 30)){
-						// 						error += errorText;
-						// 						continue loop1;
-						// 					}
-						// 				}
-						// 			}
-						// 		}
-						// 		else {
-						// 			//Either none repeats or only 1 repeats
-						// 			if (setting[y].world == world) {
-						// 				error += " Preset " + (x + 1) + " and Preset " + (y + 1) + " cannot exit at the same Zone and Cell number.";
-						// 				continue loop1;
-						// 			}
-						// 			//If this preset doesn't repeat and y does, and if y starts on a lower zone than this preset, check for conflict
-						// 			if (setting[y].times != -1 && times == -1 && setting[y].world < world){
-						// 				if ((world - setting[y].world) % setting[y].times == 0){
-						// 					error += errorText;
-						// 					continue loop1;
-						// 				}
-						// 			}
-						// 			//If this preset repeats and y does not, and if this preset starts at a lower zone than y, check for conflict
-						// 			if (setting[y].times == -1 && times != -1 && world < setting[y].world){
-						// 				if ((setting[y].world - world) % times == 0){
-						// 					error += errorText;
-						// 					continue loop1;
-						// 				}
-						// 			}
-						// 		}
-						// 	}
-						// }
-						var presetMax = 9;
+						var presetMax = 10;
 						if (preset == 5 && (game.global.universe != 2 || game.global.highestRadonLevelCleared < 69)) preset = 0;
 						if (preset < 0 || preset > presetMax) preset = 0;
 						if (repeat < 0 || repeat > 2) repeat = 0;
@@ -6907,6 +6783,22 @@ var toReturn = {
 				return (game.global.highestRadonLevelCleared >= 200);
 			},
 			hidden: false
+		},
+		mostU2Voids: {
+			get title () {
+				return "Most U2 Void Maps in one Run";
+			},
+			display: function () {
+				return (this.value > 0 || this.valueTotal > 0)
+			},
+			displayCurrent: function(){
+				return false;
+			},
+			value: 0,
+			valueTotal: 0,
+			noAdd: true,
+			keepHighest: true,
+			hidden: false
 		}
 	},
 	generatorUpgrades: {
@@ -8212,7 +8104,7 @@ var toReturn = {
 					return "Gives your Trimps this chance to crit for 1 tier higher than they would have."
 				},
 				steps: [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,[0.1,0.3,0.02]],
-				max:[0,0,0,0,0,0,0,0,0,0,0,0,20]
+				max:[0,0,0,0,0,0,0,0,0,0,0,0,25]
 			},
 			empty: {
 				name: "Empty",
@@ -8935,6 +8827,10 @@ var toReturn = {
 				var totalCleared = (fromFluffy && fluffyCount) ? fluffyCount : 1;
 				game.stats.highestVoidMap.evaluate();
 				game.stats.totalVoidMaps.value += totalCleared;
+				if (game.global.universe == 2){ 
+					game.stats.mostU2Voids.value += totalCleared;
+					if (game.stats.mostU2Voids.valueTotal < game.stats.mostU2Voids.value) game.stats.mostU2Voids.valueTotal = game.stats.mostU2Voids.value;
+				}
 				if (game.global.challengeActive == "Frigid") game.challenges.Frigid.completedVoid(totalCleared);
 				var msg = "Cthulimp and the map it came from crumble into the darkness. You find yourself instantly teleported to ";				
 				if (fromFluffy && fluffyCount == 1){

@@ -835,6 +835,7 @@ function tooltip(what, isItIn, event, textString, attachFunction, numCheck, rena
 			}
 			else style = " style='display: none' ";
 			var presetDropdown = "<option value='0'" + ((vals.preset == 0) ? " selected='selected'" : "") + ">" + getPresetDescription(1) + "</option><option value='1'" + ((vals.preset == 1) ? " selected='selected'" : "") + ">" + getPresetDescription(2) + "</option><option value='2'" + ((vals.preset == 2) ? " selected='selected'" : "") + ">" + getPresetDescription(3) + "</option><option value='6'" + ((vals.preset == 6) ? " selected='selected'" : "") + ">" + getPresetDescription(4) + "</option><option value='7'" + ((vals.preset == 7) ? " selected='selected'" : "") + ">" + getPresetDescription(5) + "</option><option value='3'" + ((vals.preset == 3) ? " selected='selected'" : "") + ">Run Bionic</option><option value='4'" + ((vals.preset == 4) ? " selected='selected'" : "") + ">Run Void</option>";
+			if (game.global.universe == 2 && game.global.highestRadonLevelCleared >= 32) presetDropdown += "<option value='10'" + ((vals.preset == 10) ? " selected='selected'" : "") + ">Atlantrimp</option>";
 			if (game.global.universe == 2 && game.global.highestRadonLevelCleared >= 49) presetDropdown += "<option value='8'" + ((vals.preset == 8) ? " selected='selected'" : "") + ">Melting Point</option>";
 			if (game.global.universe == 2 && game.global.highestRadonLevelCleared >= 69) presetDropdown += "<option value='5'" + ((vals.preset == 5) ? " selected='selected'" : "") + ">Black Bog</option>";
 			if (game.global.universe == 2 && game.global.highestRadonLevelCleared >= 174) presetDropdown += "<option value='9'" + ((vals.preset == 9) ? " selected='selected'" : "") + ">Frozen Castle</option>";
@@ -4809,10 +4810,15 @@ function resetGame(keepPortal, resetting) {
 		if (newSetting.Staff != -1) equipHeirloomById(newSetting.Staff, "Staff");
 	}
 	setUniverseStyle();
-	if (Fluffy.isRewardActive("moreVoid") && game.global.lastU2Voids >= 5 && game.global.universe == 2){
-		var freeMaps = Math.floor(game.global.lastU2Voids / 5);
-		for (var x = 0; x < freeMaps; x++) createVoidMap();
-		message("Scruffy gave you " + freeMaps + " free Void Maps!", "Notices");
+	if (Fluffy.isRewardActive("moreVoid") && game.global.universe == 2){
+		var evenMore = Fluffy.isRewardActive("evenMoreVoid");
+		var useU2Voids = (evenMore) ? game.stats.mostU2Voids.valueTotal : game.global.lastU2Voids;
+		if (useU2Voids >= 5){
+			var freeMaps = Math.floor(useU2Voids / 5);
+			if (evenMore) freeMaps = Math.floor(freeMaps * 1.5);
+			for (var x = 0; x < freeMaps; x++) createVoidMap();
+			message("Scruffy gave you " + freeMaps + " free Void Maps!", "Notices");
+		}
 	}
 	setTrimpColSize();
 	alchObj.tab.style.display = 'none';

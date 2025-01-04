@@ -1141,6 +1141,16 @@ function load(saveString, autoLoad, fromPf) {
 			disabledStackCount: savegame.portal.Equality.disabledStackCount
 		}
 	}
+	//Add to permanent after test server
+	if (betaV < 4){
+		var bestU2Voids = 0;
+		if (game.global.universe == 2) {
+			bestU2Voids = game.stats.totalVoidMaps.value;
+			game.stats.mostU2Voids.value = bestU2Voids;
+		}
+		if (game.global.lastU2Voids > bestU2Voids) bestU2Voids = game.global.lastU2Voids;
+		game.stats.mostU2Voids.valueTotal = bestU2Voids;
+	}
 	//End test server only
 	//Temporary until next patch
 
@@ -11494,7 +11504,7 @@ function canU2Overkill(getMult){
 	var allowed = .3;
 	if (u2Mutations.tree.Overkill2.purchased) allowed += 0.1;
 	if (u2Mutations.tree.Overkill3.purchased) allowed += 0.1;
-	if (u2Mutations.tree.Liq3.purchased || getMult){
+	if (u2Mutations.tree.Liq3.purchased){
 		allowed += 0.1;
 		if (u2Mutations.tree.Liq2.purchased) allowed += 0.1;
 	}
@@ -12925,7 +12935,8 @@ function runMapAtZone(index){
 		return;
 	}
 	else if (setting.preset >= 8){
-		var location = (setting.preset == 8) ? "Melting" : "Frozen";
+		var locs = ["Melting", "Frozen", "Atlantis"];
+		var location = locs[setting.preset - 8];
 		var meltMap = -1;
 		for (var x = 0; x < game.global.mapsOwnedArray.length; x++){
 			if (game.global.mapsOwnedArray[x].location == location){
@@ -13335,8 +13346,8 @@ var u2SpireBonuses = {
 	critChance: function(){
 		var add = 0;
 		if (game.global.universe != 2) return add;
-		if (game.global.u2SpireCells >= 400) add += 0.10;
-		if (game.global.u2SpireCells >= 800) add += 0.15;
+		if (game.global.u2SpireCellsBest >= 400) add += 0.10;
+		if (game.global.u2SpireCellsBest >= 800) add += 0.15;
 		return add;
 	},
 	nullifium: function(){
@@ -13351,8 +13362,8 @@ var u2SpireBonuses = {
 		if (game.global.u2SpireCellsBest <= 0) return mult;
 		var credit = this.cellCredit();
 		mult = Math.pow(1.005, credit);
-		if (game.global.u2SpireCellsBest >= 500) mult *= 2;
-		if (game.global.u2SpireCells >= 1000) mult *= 10;
+		if (credit >= 500) mult *= 2;
+		if (game.global.u2SpireCells >= 1000) mult *= 10; //10x for completing floor 10 each run, not based on credit
 		return mult;
 	},
 	cellCredit: function(){
@@ -13381,7 +13392,12 @@ function scruffySpireStory(){
 
 function rewardU2Spire(level){
 	var totalCells = (100 * (game.global.spireLevel - 1)) + level;
-	if (game.global.u2SpireCells < totalCells) game.global.u2SpireCells = totalCells;
+	if (game.global.u2SpireCells < totalCells){
+		var increase = u2SpireBonuses.basics();
+		game.global.u2SpireCells = totalCells;
+		increase = ((u2SpireBonuses.basics() / increase) - 1);
+		addSoldierHealth(increase);
+	}
 	if (game.global.u2SpireCellsBest < totalCells) game.global.u2SpireCellsBest = totalCells;
 	var text = getSpireStory("U21", totalCells);
 	if (text == '') return;
@@ -17912,10 +17928,10 @@ var Fluffy = {
 	prestigeExpModifier: 5,
 	currentExp: [],
 	damageModifiers: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 6.5],
-	damageModifiers2: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 25.5, 30.5, 38, 48, 61, 111, 171, 241, 321, 411, 511, 621, 741, 871, 1011, 1161, 1311, 1461, 1461],
+	damageModifiers2: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 25.5, 30.5, 38, 48, 61, 111, 171, 241, 321, 411, 511, 621, 741, 871, 1011, 1161, 1321, 1481, 1651, 1831, 1831],
 	rewards: ["stickler", "helium", "liquid", "purifier", "lucky", "void", "helium", "liquid", "eliminator", "overkiller"],
 	prestigeRewards: ["dailies", "voidance", "overkiller", "critChance", "megaCrit", "superVoid", "voidelicious", "naturesWrath", "voidSiphon", "plaguebrought"],
-	rewardsU2: ["trapper", "prism", "heirloopy", "radortle", "healthy", "wealthy", "critChance", "gatherer", "dailies", "exotic", "shieldlayer", "tenacity", "megaCrit", "critChance", "smithy", "biggerbetterheirlooms", "shieldlayer", "void", "moreVoid", "tenacity", "SADailies", "bigDust", "bigSeeds", "radortle2", "scruffBurst", "tenacity", "justdam", "justdam"],
+	rewardsU2: ["trapper", "prism", "heirloopy", "radortle", "healthy", "wealthy", "critChance", "gatherer", "dailies", "exotic", "shieldlayer", "tenacity", "megaCrit", "critChance", "smithy", "biggerbetterheirlooms", "shieldlayer", "void", "moreVoid", "tenacity", "SADailies", "bigDust", "bigSeeds", "radortle2", "scruffBurst", "tenacity", "evenMoreVoid", "justdam", "justdam", "justdam"],
 	prestigeRewardsU2: [],
 	checkU2Allowed: function(){
 		if (game.global.universe == 2) return true;
@@ -18594,9 +18610,13 @@ var Fluffy = {
 			description: "Gamma Burst requires 1 fewer attack before triggering."
 		},
 		radortle2: {
-			description: "Scruffy's 4th bonus that increases Radon gain based on last Portal's highest Zone is no longer based on last Portal, and is now based on your highest Zone ever reached in Universe 2."
+			description: "Scruffy's level 3 bonus that increases Radon gain based on last Portal's highest Zone is no longer based on last Portal, and is now based on your highest Zone ever reached in Universe 2."
 		},
-
+		evenMoreVoid: {
+			get description(){
+				return "Scruffy's level 18 bonus that grants extra Void Maps now starts each U2 run with <b>1.5</b> extra Void Maps for every 5 Void Maps cleared on your BEST U2 run. (" + game.stats.mostU2Voids.valueTotal + " cleared on your best run, granting " + Math.floor(1.5 * Math.floor(game.stats.mostU2Voids.valueTotal / 5)) + " extra next run)";
+			}
+		},
 		//Cruffys
 		cruf1: {
 			description: "Multiplies Radon earned by 1.5."

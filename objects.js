@@ -4629,6 +4629,10 @@ var u2Mutations = {
             require: ['Smashing2'],
             get description(){
                 var mult = canU2Overkill(true);
+                if (!this.purchased){
+                    mult += 0.1;
+                    if (u2Mutations.tree.Liq2.purchased) mult += 0.1;
+                }
                 var text = "Your Overkill Zones no longer start until after Liquification.";
                 if (u2Mutations.tree.Overkill1.purchased) text += " (With your currently purchased Mutators, Overkill up to " + prettify(mult * 100) + "% of Highest Zone, or Z" + Math.floor(game.global.highestRadonLevelCleared * mult) + ")";
                 return text;
