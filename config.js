@@ -5908,7 +5908,7 @@ var toReturn = {
 		},
 		Glass: {
 			get description() {
-				return "Travel to a dimension with fragile but dangerous Enemies. All Bad Guys are Fast and have x100 Attack. Hitting a Bad Guy without killing it creates a stack of Glass. Each Glass stack increases the base Enemy Attack multiplier by +1x. Every 100 Glass, Enemy Attack and Health doubles. Every " + prettify(1000) + " Glass, Enemies gain a Crystallized stack and Glass stacks reset to 0. Each Crystallized stack reduces Enemy Health by 20% (compounding) but also gives them a 10% chance to reflect an attack, and reaching 10 Crystallized stacks fails this Challenge. Killing an Enemy at or above World level removes two stacks of Glass plus one for every Crystallized stack on the Enemy, but Crystallized can never be removed. Completing <b>Z175</b> with this Challenge active will permanently cause all Radon earned to be increased by 10% (compounding) per Zone above Z175.";
+				return "Travel to a dimension with fragile but dangerous Enemies. All Bad Guys are Fast and have x100 Attack. Hitting a Bad Guy without killing it creates a stack of Glass. Each Glass stack increases the base Enemy Attack multiplier by +1x. Every 100 Glass, Enemy Attack and Health doubles. Every " + prettify(1000) + " Glass, Enemies gain a Crystallized stack and Glass stacks reset to 0. Each Crystallized stack reduces Enemy Health by 20% (compounding) but also gives them a 10% chance to reflect an attack, and reaching 10 Crystallized stacks fails this Challenge. Killing an Enemy at or above World level removes two stacks of Glass plus one for every Crystallized stack on the Enemy, but Crystallized can never be removed. Completing <b>Z175</b> with this Challenge active will permanently cause all Radon earned to be increased by 10% (compounding) per Zone between Z175 and the Glass ceiling at Z400.";
 			},
 			get squaredDescription() {
 				return "Travel to a dimension with fragile but dangerous Enemies. All Bad Guys are Fast and have x100 Attack. Hitting a Bad Guy without killing it creates a stack of Glass. Each Glass stack increases the base Enemy Attack multiplier by +1x. Every 100 Glass, Enemy Attack and Health doubles. Every " + prettify(1000) + " Glass, Enemies gain a Crystallized stack and Glass stacks reset to 0. Each Crystallized stack reduces Enemy Health by 20% (compounding) but also gives them a 10% chance to reflect an attack, and reaching 10 Crystallized stacks fails this Challenge. Killing an Enemy at or above World level removes two stacks of Glass plus one for every Crystallized stack on the Enemy, but Crystallized can never be removed.";
@@ -8155,6 +8155,7 @@ var toReturn = {
 				if (game.global.expandingTauntimp) num = Math.floor(num * game.badGuys.Tauntimp.expandingMult());
 				num = Math.floor(num * alchObj.getPotionEffect("Elixir of Crafting"));
 				if (autoBattle.bonuses.Scaffolding.level > 0) num = Math.floor(num * autoBattle.bonuses.Scaffolding.getMult());
+				if (game.global.universe == 2 && u2Mutations.tree.Trimps.purchased) num *= 1.5;
 				return num;
 			},
 			working: 0,
@@ -9358,7 +9359,7 @@ var toReturn = {
 				if (game.global.expandingTauntimp) return "Gain +" + prettify(this.expandingBase() * 100) + "% Max Trimps"
 				return "Gain 0.3% of your current Trimps as extra housing"
 			},
-			loot: function (level, fromMagimp) {
+			loot: function (level, fromMagimp, getAmt) {
 				var name = (fromMagimp) ? "Randimp" : "Tauntimp";
 				var oldMax = game.resources.trimps.realMax();
 				game.unlocks.impCount.Tauntimp++;
@@ -9373,6 +9374,7 @@ var toReturn = {
 							game.resources.trimps.owned += added;
 						}
 					}
+					if (getAmt) return added;
 					message("You found an Expanding Tauntimp! The extra room is increasing your housing by " + prettify((this.expandingMult() - 1) * 100) + "%.", "Loot", "gift", "exotic", "exotic");
 				}
 				else{
@@ -9384,6 +9386,7 @@ var toReturn = {
 					}
 					game.unlocks.impCount.TauntimpAdded += amt;
 					amt = (game.global.challengeActive == "Trapper" || game.global.challengeActive == "Trappapalooza") ? addMaxHousing(amt, false) : addMaxHousing(amt, true);
+					if (getAmt) return amt;
 					var msg = "It's nice, warm, and roomy in that dead " + name + ". ";
 					if (game.global.challengeActive != "Trapper" && game.global.challengeActive != "Trappapalooza"){
 						msg += "You found ";

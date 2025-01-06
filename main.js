@@ -3750,6 +3750,7 @@ function canCommitCarpentry(noInfinity){ //Uh, and Coordinated. This checks coor
 	if (game.global.expandingTauntimp) newMax = Math.floor(newMax * game.badGuys.Tauntimp.expandingMult());
 	newMax = Math.floor(newMax * (alchObj.getPotionEffect("Elixir of Crafting")));
 	if (autoBattle.bonuses.Scaffolding.level > 0) newMax = Math.floor(newMax * autoBattle.bonuses.Scaffolding.getMult());
+	if (game.global.universe == 2 && u2Mutations.tree.Trimps.purchased) newMax *= 1.5;
 	var error = document.getElementById("portalError");
 	error.innerHTML = "";
 	var good = true;
@@ -4116,7 +4117,8 @@ function rewardResource(what, baseAmt, level, checkMapLootScale, givePercentage)
 		}
 		if (game.jobs.Meteorologist.vestedHires > 0) amt *= game.jobs.Meteorologist.getMult();
 		if (game.global.universe == 2 && game.global.glassDone && game.global.world > 175){
-			var glassMult = Math.pow(1.1, game.global.world - 175);
+			var useGlassWorld = (game.global.world > 400) ? 400 : game.global.world;
+			var glassMult = Math.pow(1.1, useGlassWorld - 175);
 			amt *= glassMult;
 		}
 		if (game.global.universe == 2 && game.global.world >= 201){
@@ -9294,6 +9296,7 @@ function scaleNumberForBonusHousing(num){
 	if (game.global.expandingTauntimp) num = Math.floor(num * game.badGuys.Tauntimp.expandingMult());
 	num *= alchObj.getPotionEffect("Elixir of Crafting");
 	if (autoBattle.bonuses.Scaffolding.level > 0) num *= autoBattle.bonuses.Scaffolding.getMult();
+	if (game.global.universe == 2 && u2Mutations.tree.Trimps.purchased) num *= 1.5;
 	if (game.global.challengeActive == "Daily" && typeof game.global.dailyChallenge.large !== "undefined")
 		num = Math.floor(num * dailyModifiers.large.getMult(game.global.dailyChallenge.large.strength));
 	if (challengeActive("Size"))
@@ -9740,9 +9743,7 @@ function getRandomBadGuy(mapSuffix, level, totalCells, world, imports, mutation,
 		game.global.enemySeed = enemySeed;
 		return (getRandomIntSeeded(game.global.skeleSeed++, 0, 100) < ((game.talents.skeletimp.purchased) ? 20 : 10)) ? "Megaskeletimp" : "Skeletimp";
 	}
-	var exoticChance = 3;
-	if (Fluffy.isRewardActive("exotic")) exoticChance += 0.5;
-	if (game.permaBoneBonuses.exotic.owned > 0) exoticChance += game.permaBoneBonuses.exotic.addChance();
+	var exoticChance = getExoticChance();
 	if (game.global.universe == 2 && game.global.spireActive && !mapSuffix) exoticChance = 0;
 	if (imports.length && !force && ((getRandomIntSeeded(enemySeed++, 0, 1000) / 10) < (imports.length * exoticChance))){
 		if (!mapSuffix) game.global.enemySeed = enemySeed;
@@ -9791,6 +9792,13 @@ function getRandomBadGuy(mapSuffix, level, totalCells, world, imports, mutation,
 	if (!mapSuffix) game.global.enemySeed = enemySeed;
 	return selected;
 
+}
+
+function getExoticChance(){
+	var exoticChance = 3;
+	if (Fluffy.isRewardActive("exotic")) exoticChance += 0.5;
+	if (game.permaBoneBonuses.exotic.owned > 0) exoticChance += game.permaBoneBonuses.exotic.addChance();
+	return exoticChance;
 }
 
 function convertUnlockIconToSpan(special){
@@ -11278,6 +11286,9 @@ function startFight() {
 		if (Fluffy.isRewardActive("healthy")){
 			game.global.soldierHealthMax *= 1.5;
 		}
+		if (Fluffy.isRewardActive("scaledHealth")){
+			game.global.soldierHealthMax *= Fluffy.rewardConfig.scaledHealth.mult();
+		}
 		if (game.buildings.Antenna.owned >= 10){
 			game.global.soldierHealthMax *= game.jobs.Meteorologist.getExtraMult();
 		}
@@ -11410,6 +11421,7 @@ function startFight() {
 			if (game.global.frigidCompletions > 0 && game.global.universe == 1) healthTemp *= game.challenges.Frigid.getTrimpMult();
 			if (game.talents.mapHealth.purchased && game.global.mapsActive) healthTemp *= 2;
 			if (Fluffy.isRewardActive("healthy")) healthTemp *= 1.5;
+			if (Fluffy.isRewardActive("scaledHealth")) healthTemp *= Fluffy.rewardConfig.scaledHealth.mult();
 			if (game.jobs.Geneticist.owned > 0) healthTemp *= Math.pow(1.01, game.global.lastLowGen);
 			if (game.goldenUpgrades.Battle.currentBonus > 0) healthTemp *= game.goldenUpgrades.Battle.currentBonus + 1;
 			if (game.global.universe == 2 && game.buildings.Smithy.owned > 0) healthTemp *= game.buildings.Smithy.getMult();
@@ -12799,6 +12811,7 @@ function nextWorld() {
 			}
 		}
 	}
+	u2Mutations.tree.Tauntimps.check();
 }
 
 function checkMapAtZoneWorld(runMap){
@@ -17928,10 +17941,10 @@ var Fluffy = {
 	prestigeExpModifier: 5,
 	currentExp: [],
 	damageModifiers: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 6.5],
-	damageModifiers2: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 25.5, 30.5, 38, 48, 61, 111, 171, 241, 321, 411, 511, 621, 741, 871, 1011, 1161, 1321, 1481, 1651, 1831, 1831],
+	damageModifiers2: [1, 1.1, 1.3, 1.6, 2, 2.5, 3.1, 3.8, 4.6, 5.5, 25.5, 30.5, 38, 48, 61, 111, 171, 241, 321, 411, 511, 621, 741, 871, 1011, 1511, 2111, 2811, 3611, 4511, 4511],
 	rewards: ["stickler", "helium", "liquid", "purifier", "lucky", "void", "helium", "liquid", "eliminator", "overkiller"],
 	prestigeRewards: ["dailies", "voidance", "overkiller", "critChance", "megaCrit", "superVoid", "voidelicious", "naturesWrath", "voidSiphon", "plaguebrought"],
-	rewardsU2: ["trapper", "prism", "heirloopy", "radortle", "healthy", "wealthy", "critChance", "gatherer", "dailies", "exotic", "shieldlayer", "tenacity", "megaCrit", "critChance", "smithy", "biggerbetterheirlooms", "shieldlayer", "void", "moreVoid", "tenacity", "SADailies", "bigDust", "bigSeeds", "radortle2", "scruffBurst", "tenacity", "evenMoreVoid", "justdam", "justdam", "justdam"],
+	rewardsU2: ["trapper", "prism", "heirloopy", "radortle", "healthy", "wealthy", "critChance", "gatherer", "dailies", "exotic", "shieldlayer", "tenacity", "megaCrit", "critChance", "smithy", "biggerbetterheirlooms", "shieldlayer", "void", "moreVoid", "tenacity", "SADailies", "bigDust", "bigSeeds", "radortle2", "scruffBurst", "tenacity", "evenMoreVoid", "scaledHealth", "justdam", "justdam"],
 	prestigeRewardsU2: [],
 	checkU2Allowed: function(){
 		if (game.global.universe == 2) return true;
@@ -18615,6 +18628,14 @@ var Fluffy = {
 		evenMoreVoid: {
 			get description(){
 				return "Scruffy's level 18 bonus that grants extra Void Maps now starts each U2 run with <b>1.5</b> extra Void Maps for every 5 Void Maps cleared on your BEST U2 run. (" + game.stats.mostU2Voids.valueTotal + " cleared on your best run, granting " + Math.floor(1.5 * Math.floor(game.stats.mostU2Voids.valueTotal / 5)) + " extra next run)";
+			}
+		},
+		scaledHealth: {
+			get description(){
+				return "Your Trimps gain +50% Health per Scruffy level. Scruffy is currently level " + Fluffy.getLevel() + ", granting +" + prettify((this.mult() - 1) * 100) + "% Health.";
+			},
+			mult: function(){
+				return 1 + (Fluffy.getLevel() * 0.5)
 			}
 		},
 		//Cruffys

@@ -4476,6 +4476,40 @@ var u2Mutations = {
             description: "Gain +50% Health in U2.",
             purchased: false
         },
+        Trimps: {
+            pos: [1, 10],
+            dn: 'Small Trimps',
+            color: '#b307b3',
+            require: ["Health"],
+            description: "50% more Trimps can fit in housing in U2.",
+            purchased: false
+        },
+        Tauntimps: {
+            pos: [6, 11],
+            dn: "Tauntimp Farming",
+            color: '#b307b3',
+            require: ["Trimps"],
+            description: "Every 10 Zones in U2, if you have seen fewer Tauntimps in your run than expected, find the missing amount instantly. Expect 2 more Tauntimps than usual every 10 Zones.",
+            purchased: false,
+            check: function(){
+                if (game.global.universe != 2 || !this.purchased) return;
+                if (game.global.world % 10 != 0) return;
+                var exoticChance = getExoticChance();
+                var cells = (game.global.world - 1) * 100
+                var expectedTaunts = cells * (exoticChance / 100);
+                expectedTaunts += (cells * 0.02) / 5; //randimp tauntimps
+                expectedTaunts += Math.floor(game.global.world / 10) * 2;
+                expectedTaunts = Math.floor(expectedTaunts);
+                var needTaunts = expectedTaunts - game.unlocks.impCount.Tauntimp;
+                if (needTaunts <= 0) return;
+                var addTrimps = 0;
+                for (var x = 0; x < needTaunts; x++){
+                    addTrimps += game.badGuys.Tauntimp.loot(null, false, true);
+                }
+                var text = "Your Trimps noticed they were a little light on Tauntimps for housing, so they bred " + needTaunts + " more! " + ((needTaunts == 1) ? "This" : "These") + " new Tauntimp" + needAnS(needTaunts) + ((needTaunts == 1) ? " is" : " are") + " granting room for " + prettify(addTrimps) + " more Trimps."; 
+                message(text, "Loot", "gift", "exotic", "exotic");
+            }
+        },
         Attack: {
             pos: [3, 7],
             color: '#b307b3',
