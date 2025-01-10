@@ -1151,6 +1151,10 @@ function load(saveString, autoLoad, fromPf) {
 		if (game.global.lastU2Voids > bestU2Voids) bestU2Voids = game.global.lastU2Voids;
 		game.stats.mostU2Voids.valueTotal = bestU2Voids;
 	}
+	//Add to permanent after test server
+	if (betaV < 5){
+		autoBattle.checkAddRingSlot();
+	}
 	//End test server only
 	//Temporary until next patch
 
@@ -6275,6 +6279,7 @@ function buyMap() {
 }
 
 function checkVoidMap() {
+	if (game.global.universe == 2 && game.global.spireActive) return;
 	if (game.global.ShieldEquipped && game.global.ShieldEquipped.rarity >= 10 && game.heirlooms.Shield.voidMaps.currentBonus > 0){
 		game.global.hazShieldCredit++;
 		if (game.global.hazShieldCredit >= 1000){

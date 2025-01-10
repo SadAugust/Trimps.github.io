@@ -6160,6 +6160,10 @@ function toggleSetting(setting, elem, fromPortal, updateOnly, backwards, fromHot
 		tooltip("Archaeology Automator", null, 'update');
 		return;
 	}
+	if (setting == "sealedAutoBattle"){
+		autoBattle.unseal();
+		return;
+	}
 	if (setting == "pauseGame"){
 		if (game.options.menu.disablePause.enabled == 0) return;
 		if (new Date().getTime() - lastPause < 110) return;

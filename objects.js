@@ -647,6 +647,8 @@ var autoBattle = {
     lastSelect: "",
     lastActions: [],
     activeContract: "",
+    sealed: false,
+    canSeal: false,
     lootAvg: {
         accumulator: 0,
         counter: 0
@@ -706,6 +708,7 @@ var autoBattle = {
             dustMult: 0,
             gooStored: 0,
             lastGoo: -1,
+            immune: "",
             bleed: {
                 time: 0,
                 mod: 0
@@ -744,6 +747,8 @@ var autoBattle = {
         this.activeContract = "";
         this.resetStats();
         this.rings = this.getFreshRings();
+        this.sealed = false;
+        this.canSeal = false;
         for (var item in this.items){
             item = this.items[item];
             item.owned = (item.zone) ? false : true;
@@ -780,6 +785,8 @@ var autoBattle = {
         data.activeContract = this.activeContract;
         data.items = {};
         data.rings = this.rings;
+        data.sealed = this.sealed;
+        data.canSeal = this.canSeal;
         for (var item in this.items){
             var thisItem = this.items[item];
             if (!thisItem.owned) continue;
@@ -821,7 +828,8 @@ var autoBattle = {
             else tab.style.display = 'table-cell';
             return;
         }
-        tab.style.display = 'table-cell';
+        if (data.sealed) tab.style.display = 'none';
+        else tab.style.display = 'table-cell';
         this.enemyLevel = data.enemyLevel;
         this.dust = data.dust;
         this.shards = data.shards ? data.shards : 0;
@@ -831,12 +839,16 @@ var autoBattle = {
         if (data.rings && data.rings.level) this.rings = data.rings;
         else this.rings = this.getFreshRings();
         if (data.activeContract) this.activeContract = data.activeContract;
+        if (data.sealed) this.sealed = true;
+        if (data.canSeal) this.canSeal = true;
+
         if (data.presets) this.presets = data.presets;
         else{
             this.presets.p1 = [];
             this.presets.p2 = [];
             this.presets.p3 = [];
         }
+
         if (data.lastActions) this.lastActions = data.lastActions;
         for (var x = 0; x < this.lastActions.length; x++){
             if (!this.lastActions[x][6]) this.lastActions[x][6] = 0;
@@ -882,6 +894,17 @@ var autoBattle = {
         if (!this.presets.names) this.presets.names = ["Preset 1", "Preset 2", "Preset 3"];
         game.stats.saHighestLevel.valueTotal = this.maxEnemyLevel;
         this.resetCombat(true);
+    },
+    seal: function(){
+        this.sealed = true;
+        document.getElementById('autoBattleTab').style.display = 'none';
+        cancelTooltip();
+    },
+    unseal: function(){
+        this.sealed = false;
+        document.getElementById('autoBattleTab').style.display = 'table-cell';
+        tooltip('hide');
+        this.popup();
     },
     firstUnlock: function(){
         this.load();
@@ -2216,6 +2239,7 @@ var autoBattle = {
             startPrice: 15e5,
             priceMod: 20
         },
+        //Dopp Diadem 250
         //Final calc items
         //After all shock resist
         Stormbringer: {
@@ -2664,6 +2688,32 @@ var autoBattle = {
             priceMod: 20,
             dustType: "shards",
         },
+        Gaseous_Greataxe: {
+            owned: false,
+            equipped: false,
+            hidden: false,
+            level: 1,
+            zone: 260,
+            description: function(){
+                return "Multiplies your Poison Damage by your Bleed Damage or Shock Damage, whichever is higher. Doubles Poison Stack Rate. +" + prettify(this.maxStacks()) + " Max Poison Stacks. Increases Max Poison stacks by this amount again and doubles Poison damage every minute.";
+            },
+            upgrade: "+50% more (compounding) Max Poison Stacks",
+            maxStacks: function(){
+                return Math.floor(100 * Math.pow(1.2, this.level - 1));
+            },
+            doStuff: function(){
+                var higherMod = (autoBattle.trimp.shockMod > autoBattle.trimp.bleedMod) ? autoBattle.trimp.shockMod : autoBattle.trimp.bleedMod;
+                if (higherMod < 1) higherMod = 1;
+                autoBattle.trimp.poisonMod *= higherMod;
+                var minutes = Math.floor(autoBattle.battleTime / 60000);
+                autoBattle.trimp.poisonMod *= Math.pow(2, minutes);
+                autoBattle.trimp.poisonStack += this.maxStacks() * (minutes + 1);
+                autoBattle.trimp.poisonRate *= 2;
+            },
+            dustType: "shards",
+            startPrice: 15e5,
+            priceMod: 20
+        },
 
     },
     bonuses: {
@@ -2684,7 +2734,8 @@ var autoBattle = {
             },
             level: 0,
             price: 30000,
-            priceMod: 3
+            priceMod: 3,
+            max: 50
         },
         Stats: {
             description: function(){
@@ -2695,7 +2746,8 @@ var autoBattle = {
             },
             level: 0,
             price: 20000,
-            priceMod: 3
+            priceMod: 3,
+            max: 50
         },
         Scaffolding: {
             description: function(){
@@ -2707,7 +2759,8 @@ var autoBattle = {
             level: 0,
             price: 50,
             useShards: true,
-            priceMod: 10
+            priceMod: 10,
+            max: 18
         }
     },
     oneTimers: {
@@ -2809,15 +2862,6 @@ var autoBattle = {
             requiredItems: 48,
             useShards: true
         },
-        Radiant_Ring: {
-            description: "Your ring gains a third slot.",
-            owned: false,
-            requiredItems: 50,
-            useShards: true,
-            onPurchase: function(){
-                autoBattle.checkAddRingSlot();
-            }
-        },
         Expanding_Tauntimp: {
             description: "Starting after your next Portal, U2 Tauntimps will increase all Trimps gained by " + prettify(game.badGuys.Tauntimp.expandingBase() * 100) + "% per run instead of adding flat housing.",
             owned: false,
@@ -2876,6 +2920,9 @@ var autoBattle = {
         
         this.checkItems();
 
+        if (this.enemy.immune != ""){
+            this.trimp[this.enemy.immune + "Chance"] = 0;
+        }
         var trimpAttackTime = this.trimp.attackSpeed;
         if (this.trimp.lastAttack >= trimpAttackTime){
             this.trimp.lastAttack -= trimpAttackTime;
@@ -3184,6 +3231,10 @@ var autoBattle = {
         for (var x = 0; x < effectsCount; x++){
             var roll = getRandomIntSeeded(seed++, 0, effects.length);
             var effect = effects[roll];
+            if (x == 0 && this.enemyLevel > 150){
+                var immunities = ["Poison Immune", "Shock Immune", "Bleed Immune"];
+                effect = immunities[(this.enemyLevel - 151) % 3];
+            }
             if (!doubleResist && effect.search("Resistant") != -1){
                 var offset = this.enemyLevel % 3;
                 roll = getRandomIntSeeded(seed++, 0, 100);
@@ -3261,6 +3312,18 @@ var autoBattle = {
                     effects.splice(effects.indexOf(effect), 1);
                     if (!doubleResist || selectedEffects.indexOf('Bleed Resistant') != -1) effects.splice(effects.indexOf('Poison Resistant'), 1);
                     if (!doubleResist || selectedEffects.indexOf('Poison Resistant') != -1) effects.splice(effects.indexOf('Bleed Resistant'), 1);
+                    break;
+                case "Poison Immune":
+                    this.enemy.immune = "poison";
+                    effects.splice(effects.indexOf('Poison Resistant'), 1);
+                    break;
+                case "Shock Immune":
+                    this.enemy.immune = "shock";
+                    effects.splice(effects.indexOf('Shock Resistant'), 1);
+                    break;
+                case "Bleed Immune":
+                    this.enemy.immune = "bleed";
+                    effects.splice(effects.indexOf('Bleed Resistant'), 1);
                     break;
                 case "Defensive":
                     this.enemy.defense += Math.ceil((this.enemy.level * 0.75) * Math.pow(1.05, this.enemy.level));
@@ -3394,14 +3457,22 @@ var autoBattle = {
         }
         this.lootAvg.accumulator += amt;
         this.lootAvg.counter += this.battleTime;
-        if (this.enemy.level == this.maxEnemyLevel && this.speed == 1 && this.maxEnemyLevel < 150){
+        if (this.enemy.level == this.maxEnemyLevel && this.speed == 1 && this.maxEnemyLevel <= 160){
             this.enemiesKilled++;
             if (this.enemiesKilled >= this.nextLevelCount()) {
-                this.maxEnemyLevel++;
-                game.stats.saHighestLevel.valueTotal = this.maxEnemyLevel;
-                if (this.autoLevel) this.enemyLevel++;
-                this.enemiesKilled = 0;
-                this.resetStats();
+                if (this.maxEnemyLevel == 160){
+                    this.bonuses.Radon.level = 52;
+                    this.bonuses.Stats.level = 52;
+                    this.bonuses.Scaffolding.level = 20;
+                    this.canSeal = true;
+                }
+                else{
+                    this.maxEnemyLevel++;
+                    game.stats.saHighestLevel.valueTotal = this.maxEnemyLevel;
+                    if (this.autoLevel) this.enemyLevel++;
+                    this.enemiesKilled = 0;
+                    this.resetStats();
+                }
             }
         }
         if (this.sessionEnemiesKilled > this.sessionTrimpsKilled) swapClass('abTab', 'abTabWinning', document.getElementById('autoBattleTab'));
@@ -3415,6 +3486,7 @@ var autoBattle = {
     },
     update: function(){
         if (game.global.highestRadonLevelCleared < 74) return;
+        if (this.sealed) return;
         if (usingRealTimeOffline && this.speed > 1){
             this.settings.practice.enabled = 0;
             this.speed = 1;
@@ -3490,6 +3562,7 @@ var autoBattle = {
     buyBonus: function(what){
         var bonus = this.bonuses[what];
         var cost = this.getBonusCost(what);
+        if (bonus.max && bonus.level >= bonus.max) return;
         if (bonus.useShards){
             if (this.shards < cost) return;
             this.shards -= cost;
@@ -3775,9 +3848,8 @@ var autoBattle = {
         return modObj.baseGain * this.rings.level * Math.pow(modObj.perTen, Math.floor(this.rings.level / 10))
     },
     getRingSlots: function(){
-        var amt = Math.floor((this.rings.level - 5) / 10) + 1;
-        if (amt > 2) amt = 2;
-        if (this.oneTimers.Radiant_Ring.owned) amt++;
+        var amt = Math.floor(this.rings.level / 15) + 1;
+        if (amt > 3) amt = 3;
         return amt;
     },
     levelRing: function(){
@@ -3846,6 +3918,7 @@ var autoBattle = {
                 text += "</select>";
             }
             if (this.rings.level < 15) text += "Unlock another slot at Level 15!"
+            else if (this.rings.level < 30) text += "Unlock another slot at level 30!"
             
         }
         text += "</div><div class='ringContainer' style='text-align: center; padding-top: 2em;'><span class='btn btn-lg autoItemUpgrade' onclick='autoBattle.levelRing()' style='width: 90%'>Level Up! (" + prettify(this.getRingLevelCost()) + " Shards)</span><br/>";
@@ -3923,6 +3996,7 @@ var autoBattle = {
             if (bonusObj.useShards && this.maxEnemyLevel < 51) continue;
             var cost = this.getBonusCost(bonus);
             var costColor = ((!bonusObj.useShards && cost <= this.dust) || (bonusObj.useShards && cost <= this.shards)) ? "green" : "red";
+            if (bonusObj.max && bonusObj.level >= bonusObj.max) costColor = "red";
             var elem = document.getElementById(bonus + "BonusPrice");
             if (!elem) return false;
             elem.className = costColor;
@@ -3985,7 +4059,11 @@ var autoBattle = {
                 }
             }
         }
-        var topText = prettify(this.dust) + " Dust (" + prettify(dustPs) + " per sec)" + shardText + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + ((this.settings.practice.enabled == 1) ? "<b style='color: #921707'>Practicing</b>" : ((this.enemyLevel == this.maxEnemyLevel) ? ((this.maxEnemyLevel == 150) ? "Farming (Max Level)" : "Kill " + (this.nextLevelCount() - this.enemiesKilled)) : "Farming")) + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enemies Killed: " + this.sessionEnemiesKilled + "&nbsp;" + pctWon + "&nbsp;&nbsp;&nbsp;Fights Lost: " + this.sessionTrimpsKilled + "<br/>Enemy Level " + this.enemy.level + ((this.profile) ? " (" + this.profile + ")" : "") + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        var topText = "";
+        if (this.canSeal){
+            topText += "<div class='sealAutoBattle'>Huffy can go no further up the Spire but can now Seal it to prevent any more Enemies from escaping. All bonuses have been set to 2 levels above their maximum. Congratulations on completing Spire Assault!!! <span onclick='autoBattle.seal()' class='autoItem autoItemEquipped' style='width: initial'>Seal Spire Assault (Can reopen at any time in settings)</span></div>"
+        }
+        topText += prettify(this.dust) + " Dust (" + prettify(dustPs) + " per sec)" + shardText + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + ((this.settings.practice.enabled == 1) ? "<b style='color: #921707'>Practicing</b>" : ((this.enemyLevel == this.maxEnemyLevel) ? ((this.canSeal) ? "Farming (Max Level)" : "Kill " + (this.nextLevelCount() - this.enemiesKilled)) : "Farming")) + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enemies Killed: " + this.sessionEnemiesKilled + "&nbsp;" + pctWon + "&nbsp;&nbsp;&nbsp;Fights Lost: " + this.sessionTrimpsKilled + "<br/>Enemy Level " + this.enemy.level + ((this.profile) ? " (" + this.profile + ")" : "") + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
         var buttons = "";
 
         if (!(updateOnly && statsOnly)) buttons = "<div id='abLevelButtons'><span id='abDecreaseLevel' onclick='autoBattle.levelDown()' class='btn-md btn auto'>- Decrease Enemy Level -</span><span onclick='autoBattle.toggleAutoLevel()' id='abAutoLevel' class='btn btn-md auto'>Set AutoLevel On</span><span onclick='autoBattle.levelUp()' id='abIncreaseLevel' class='btn btn-md auto'>+ Increase Enemy Level +</span><span id='abHelpBtn' onclick='autoBattle.help()' class='icomoon icon-question-circle'></span><span id='abCloseBtn' onclick='cancelTooltip()' class='icomoon icon-close'></span></div>";
@@ -4081,7 +4159,8 @@ var autoBattle = {
             }
             else if ((fighterObj.poisonChance > 0 && (!ringStatusChance || ringStatusChance < fighterObj.poisonChance)) || fighterObj.poisonTime > 0 || (fighterObj.poisonMod > freePmod && (!ringPoison || ringPoison + freePmod < fighterObj.poisonMod))){
                 statsText += "<span class='abError'>"
-                if (fighterObj.poisonTime <= 0) statsText += "*You need an item that can create a Poison (Like Fists of Goo) to Poison.";
+                if (fighterObj.poisonChance <= 0 && opponentObj.immune == "poison") statsText += "Enemy is immune to Poison!"
+                else if (fighterObj.poisonTime <= 0) statsText += "*You need an item that can create a Poison (Like Fists of Goo) to Poison.";
                 else if (fighterObj.poisonChance <= 0 && (!this.rings.poison.poisonChance || this.rings.poison.poisonChance < fighterObj.poisonChance)) statsText += "*You need an item that grants Poison Chance to Poison.";
                 else if (fighterObj.poisonMod <= 0) statsText += "*You need an item that grants Poison Damage to Poison.";
                 statsText += "</span>";
@@ -4092,7 +4171,8 @@ var autoBattle = {
             }
             else if ((fighterObj.bleedChance > 0 && (!ringStatusChance || ringStatusChance < fighterObj.bleedChance)) || fighterObj.bleedTime > 0 || (fighterObj.bleedMod > 0 && (!ringBleedShock || ringBleedShock / 100 < fighterObj.bleedMod))){
                 statsText += "<span class='abError'>"
-                if (fighterObj.bleedTime <= 0) statsText += "*You need an item that can create a Bleed (Like Rusty Dagger) to cause Bleeding.";
+                if (fighterObj.bleedChance <= 0 && opponentObj.immune == "bleed") statsText += "Enemy is immune to Bleed!";
+                else if (fighterObj.bleedTime <= 0) statsText += "*You need an item that can create a Bleed (Like Rusty Dagger) to cause Bleeding.";
                 else if (fighterObj.bleedChance <= 0) statsText += "*You need an item that grants Bleed Chance to cause Bleeding.";
                 else if (fighterObj.bleedMod <= 0) statsText += "*You need an item that grants Bleed Damage to cause Bleeding.";
                 statsText += "</span>";
@@ -4104,7 +4184,8 @@ var autoBattle = {
             }
             else if ((fighterObj.shockChance > 0 && (!ringStatusChance || ringStatusChance < fighterObj.shockChance)) || fighterObj.shockTime > 0 || (fighterObj.shockMod > 0 && (!ringBleedShock || ringBleedShock / 100 < fighterObj.shockMod))){
                 statsText += "<span class='abError'>"
-                if (fighterObj.shockTime <= 0 && !this.items.Nozzled_Goggles.equipped) statsText += "*You need an item that can create a Shock (Like Battery Stick) to Shock.";
+                if (fighterObj.shockChance <= 0 && opponentObj.immune == "shock") statsText += "Enemy is immune to Shock!"
+                else if (fighterObj.shockTime <= 0 && !this.items.Nozzled_Goggles.equipped) statsText += "*You need an item that can create a Shock (Like Battery Stick) to Shock.";
                 else if (fighterObj.shockChance <= 0) statsText += "*You need an item that grants Shock Chance to Shock.";
                 else if (fighterObj.shockMod <= 0) statsText += "*You need an item that grants Shock Damage to Shock.";
                 statsText += "</span>";
@@ -4213,9 +4294,15 @@ var autoBattle = {
                 var bonusObj = this.bonuses[bonus];
                 if (bonusObj.useShards && this.maxEnemyLevel < 51) continue;
                 var cost = this.getBonusCost(bonus);
-                var costText = ((!bonusObj.useShards && cost <= this.dust) || (bonusObj.useShards && cost <= this.shards)) ? "green" : "red";
-                costText = "<span id='" + bonus + "BonusPrice' class='" + costText + "'>" + prettify(cost) + " " + ((bonusObj.useShards) ? "Shards" : "Dust") + "</span>";
-                text += "<div id='" + bonus + "BonusBox' onclick='autoBattle.buyBonus(\"" + bonus + "\")' class='autoBonusBox'>" + this.cleanName(bonus) + "<br/>Level: " + bonusObj.level + " - " + costText + "<br/>" + bonusObj.description() + "<br/>Unlimited Purchases</div>";
+                var costTextColor = ((!bonusObj.useShards && cost <= this.dust) || (bonusObj.useShards && cost <= this.shards)) ? "green" : "red";
+                var costText = prettify(cost) + " " + ((bonusObj.useShards) ? "Shards" : "Dust");
+                if (bonusObj.max && bonusObj.level >= bonusObj.max){
+                    costTextColor = "red";
+                    costText = "Max Level!"
+                }
+                costText = "<span id='" + bonus + "BonusPrice' class='" + costTextColor + "'>" + costText + "</span>";
+                var maxLevel = (bonusObj.maxLevel) ? "Max Level " + bonusObj.maxLevel : "Unlimited Purchases";
+                text += "<div id='" + bonus + "BonusBox' onclick='autoBattle.buyBonus(\"" + bonus + "\")' class='autoBonusBox'>" + this.cleanName(bonus) + "<br/>Level: " + bonusObj.level + " - " + costText + "<br/>" + bonusObj.description() + "<br/>" + maxLevel + "</div>";
             }
             var oneCount = 0;
             var ownedItems = this.countOwnedItems();

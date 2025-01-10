@@ -26,7 +26,7 @@ var toReturn = {
 		//Leave 'version' at 4.914 forever, for compatability with old saves
 		version: 4.914,
 		isBeta: true,
-		betaV: 4,
+		betaV: 5,
 		killSavesBelow: 0.13,
 		uniqueId: new Date().getTime() + "" + Math.floor(Math.random() * 1e10),
 		playerGathering: "",
@@ -1784,6 +1784,15 @@ var toReturn = {
 				},
 				onToggle: function(){
 					playerSpire.openPopup();
+				}
+			},
+			sealedAutoBattle: {
+				enabled: 0,
+				extraTags: "other",
+				description: "Your Spire is Sealed, but you can look at it here if you want to.",
+				titles: ["View Spire Assault"],
+				lockUnless: function(){
+					return (autoBattle.sealed);
 				}
 			},
 			saveOnPause: {
