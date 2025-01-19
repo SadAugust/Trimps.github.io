@@ -5631,7 +5631,7 @@ function drawAllBuildings(){
 function drawBuilding(what, where){
 	if (usingScreenReader){
 		where.insertAdjacentHTML('beforeend', '<button class="thingColorCanNotAfford thing noselect pointer buildingThing" id="' + what + '" onclick="buyBuilding(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span>, <span class="thingOwned" id="' + what + 'Owned">' + game.buildings[what].owned + '</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
-		document.getElementById(what).addEventListener("keydown", function (event) { keyTooltip(event, what, "buildings") });
+		makeAccessibleTooltip(what, [what, "buildings"])
 		return;
 	}
 	where.insertAdjacentHTML('beforeend', '<div onmouseover="tooltip(\'' + what + '\',\'buildings\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer buildingThing" id="' + what + '" onclick="buyBuilding(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span><br/><span class="thingOwned" id="' + what + 'Owned">' + game.buildings[what].owned + '</span></div>');
@@ -5666,7 +5666,7 @@ function drawAllJobs(force){
 function drawJob(what, where){
 	if (usingScreenReader){
 		where.insertAdjacentHTML('beforeend', '<button class="thingColorCanNotAfford thing noselect pointer jobThing" id="' + what + '" onclick="buyJob(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span>, <span class="thingOwned" id="' + what + 'Owned">0</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
-		document.getElementById(what).addEventListener("keydown", function (event) { keyTooltip(event, what, "jobs") })
+		makeAccessibleTooltip(what, [what, "jobs"])
 		return;
 	}
 	where.insertAdjacentHTML('beforeend', '<div onmouseover="tooltip(\'' + what + '\',\'jobs\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer jobThing" id="' + what + '" onclick="buyJob(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span><br/><span class="thingOwned" id="' + what + 'Owned">0</span></div>');
@@ -5675,9 +5675,8 @@ function drawJob(what, where){
 function drawGeneticistassist(where){
 	if (usingScreenReader){
 		where.insertAdjacentHTML('beforeend', '<button class="thingColorCanNotAfford thing noselect pointer jobThing" id="Geneticist" onclick="buyJob(\'Geneticist\')"><span class="thingName"><span id="GeneticistAlert" class="alert badge"></span>Geneticist</span><br/><span class="thingOwned" id="GeneticistOwned">0</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button><button class="thing thingColorNone noselect stateHappy pointer jobThing" id="Geneticistassist" onclick="toggleGeneticistassist()">Geneticistassist<span id="GAIndicator"></span><br/><span id="GeneticistassistSetting">&nbsp;</span></button>');
-		// Geneticist \'Geneticist\',\'jobs\'
-		document.getElementById("Geneticist").addEventListener("keydown", function (event) { keyTooltip(event, "Geneticist", "jobs") })
-		document.getElementById("Geneticistassist").addEventListener("keydown", function (event) { keyTooltip(event, "Geneticistassist", null) })
+		makeAccessibleTooltip("Geneticist", ["Geneticist", "jobs"]) 
+		makeAccessibleTooltip("Geneticistassist", ["Geneticistassist", null]) 
 		toggleGeneticistassist(true);
 		return
 	}
@@ -5832,7 +5831,7 @@ function drawUpgrade(what, where){
 	if (upgrade.isRelic) done = game.challenges.Archaeology.getPoints(upgrade.relic);
 	if (usingScreenReader){
 		where.insertAdjacentHTML("beforeend", '<button class="thingColorCanNotAfford thing noselect pointer upgradeThing" id="' + what + '" onclick="buyUpgrade(\'' + what + '\')"><span id="' + what + 'Alert" class="alert badge"></span><span class="thingName">' + name + '</span>, <span class="thingOwned" id="' + what + 'Owned">' + done + '</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
-		document.getElementById(what).addEventListener("keydown", function (event) { keyTooltip(event, what, "upgrades") })
+		makeAccessibleTooltip(what, [what, "upgrades"]) 
 	}
 	else{
 		where.insertAdjacentHTML("beforeend", '<div onmouseover="tooltip(\'' + what + '\',\'upgrades\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer upgradeThing" id="' + what + '" onclick="buyUpgrade(\'' + what + '\')"><span id="' + what + 'Alert" class="alert badge"></span><span class="thingName">' + name + '</span><br/><span class="thingOwned" id="' + what + 'Owned">' + done + '</span></div>');
@@ -5986,7 +5985,7 @@ function drawEquipment(what, elem){
 	}
 	if (usingScreenReader){
 		elem.insertAdjacentHTML("beforeend", '<button class="noselect pointer thingColorCanNotAfford thing" id="' + what + '" onclick="buyEquipment(\'' + what + '\')"><span class="thingName">' + what + ' <span id="' + what + 'Numeral">' + numeral + '</span></span>, <span class="thingOwned">Level: <span id="' + what + 'Owned">0</span></span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
-		document.getElementById(what).addEventListener("keydown", function (event) { keyTooltip(event, what, "equipment") })
+		makeAccessibleTooltip(what, [what, "equipment"])
 		return;
 	}
 	elem.insertAdjacentHTML("beforeend", '<div onmouseover="tooltip(\'' + what + '\',\'equipment\',event)" onmouseout="tooltip(\'hide\')" class="efficientNo noselect pointer thingColorCanNotAfford thing" id="' + what + '" onclick="buyEquipment(\'' + what + '\')"><span class="thingName">' + what + ' <span id="' + what + 'Numeral">' + numeral + '</span></span><br/><span class="thingOwned">Level: <span id="' + what + 'Owned">0</span></span></div>');
@@ -7377,15 +7376,6 @@ function screenReaderSummary(){
 		srSumChallenge.innerHTML = challengeText;
 	}
 
-}
-
-function keyTooltip(keyEvent, what, isItIn, event, textString, attachFunction, numCheck, renameBtn, noHide, hideCancel, ignoreShift){
-	// wrapper for tooltips to show screen reader tooltips using onkeydown
-	if (usingScreenReader && keyEvent && keyEvent.key == "?") {
-		const natureTooltips = ["Poison", "Wind", "Ice"]
-		if (natureTooltips.includes(isItIn)) natureTooltip(...Object.values(arguments))
-		else tooltip(what, isItIn, "screenRead", ...Object.values(arguments).slice(3,))
-	}
 }
 
 
