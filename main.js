@@ -4948,7 +4948,7 @@ function buildBuilding(what, amt = 1) {
 	checkAchieve('housing', what);
 
 	const ownedElem = document.getElementById(what + 'Owned');
-	if (ownedElem && shouldUpdate()) ownedElem.innerHTML = building.owned;
+	if (ownedElem && !usingRealTimeOffline) ownedElem.innerHTML = building.owned;
 
 	if (typeof building.increase !== 'undefined') {
 		if (building.increase.what === 'trimps.max') {
@@ -9852,7 +9852,7 @@ function updateNextGeneratorTickTime() {
 	}
 
 	const message = mousedOverClock && game.permanentGeneratorUpgrades.Supervision.owned ? "<span class='icomoon icon-pause3'></span>" : usingRealTimeOffline ? 0 : prettify(Math.floor(nextTickIn + 1));
-	if (nextTickElem !== message && shouldUpdate()) nextTickElem.innerHTML = message;
+	if (nextTickElem !== message && !usingRealTimeOffline) nextTickElem.innerHTML = message;
 
 	let countingTick = Math.round((tickTime - nextTickIn) * 10) / 10;
 	countingTick = Math.round(countingTick * 10) / 10;
@@ -15642,7 +15642,7 @@ function fight(makeUp) {
 					if (game.talents.mapBattery.purchased && game.global.mapBonus === 10) innerText = "<span class='mapBonus10'>" + innerText + '</span>';
 					const mapBtnElem = document.getElementById('mapsBtnText');
 					const mapBtnText = `Maps (${innerText})`;
-					if (mapBtnElem.innerHTML !== mapBtnText && shouldUpdate(500)) mapBtnElem.innerHTML = mapBtnText;
+					if (mapBtnElem.innerHTML !== mapBtnText && !usingRealTimeOffline) mapBtnElem.innerHTML = mapBtnText;
 				}
 				game.global.lastClearedMapCell = -1;
 				buildMapGrid(game.global.currentMapId);
@@ -15708,7 +15708,7 @@ function fight(makeUp) {
 	let cellAttack = calculateDamage(cell.attack, false, false, false, cell);
 	const badAttackElem = document.getElementById('badGuyAttack');
 	const badAttackText = calculateDamage(cell.attack, true, false, false, cell);
-	if (badAttackElem.innerHTML != badAttackText && shouldUpdate(500)) badAttackElem.innerHTML = badAttackText;
+	if (badAttackElem.innerHTML != badAttackText && !usingRealTimeOffline) badAttackElem.innerHTML = badAttackText;
 	let badCrit = false;
 
 	if (challengeActive('Crushed')) {
@@ -15759,7 +15759,7 @@ function fight(makeUp) {
 	let trimpAttack = calculateDamage(game.global.soldierCurrentAttack, false, true);
 	const goodAttackElem = document.getElementById('goodGuyAttack');
 	const goodAttackText = calculateDamage(game.global.soldierCurrentAttack, true, true);
-	if (goodAttackElem.innerHTML != goodAttackText && shouldUpdate(500)) goodAttackElem.innerHTML = goodAttackText;
+	if (goodAttackElem.innerHTML != goodAttackText && !usingRealTimeOffline) goodAttackElem.innerHTML = goodAttackText;
 
 	updateTitimp();
 	let critTier = 0;
@@ -19908,7 +19908,7 @@ function runEverySecond(makeUp) {
 		game.stats.bestHeliumHourThisRun.evaluate();
 		const newHeliumPhHTML = `${prettify(heHr)}/hr`;
 		const heliumPhElem = document.getElementById('heliumPh');
-		if (heliumPhElem.innerHTML !== newHeliumPhHTML && shouldUpdate(1000)) {
+		if (heliumPhElem.innerHTML !== newHeliumPhHTML && !usingRealTimeOffline) {
 			heliumPhElem.innerHTML = newHeliumPhHTML;
 		}
 		if (game.global.universe === 1) checkAchieve('heliumHour');
