@@ -5697,56 +5697,29 @@ function unlockBuilding(what) {
 	drawAllBuildings();
 }
 
-function drawAllBuildings(force) {
-	if (usingRealTimeOffline && !force) return;
-
-	const buildings = game.buildings;
-	const elem = document.getElementById('buildingsHere');
-	let innerHTML = '';
-	let updateTooltips = [];
-	let alert = false;
-
-	for (const item in buildings) {
-		const building = buildings[item];
-		if (building.locked) continue;
-		if (building.alert) alert = true;
-		innerHTML += drawBuilding(item);
-		updateTooltips.push(item);
+function drawAllBuildings(){
+	if (usingRealTimeOffline) return;
+	var elem = document.getElementById("buildingsHere");
+	elem.innerHTML = "";
+	for (var item in game.buildings){
+		building = game.buildings[item];
+		if (building.locked == 1) continue;
+		drawBuilding(item, elem);
+		if (building.alert && game.options.menu.showAlerts.enabled){
+			document.getElementById("buildingsAlert").innerText = "!";
+			if (document.getElementById(item + "Alert")) document.getElementById(item + "Alert").innerText = "!";
+		}
 	}
-
-	if (elem.innerHTML !== innerHTML) {
-		elem.innerHTML = innerHTML;
-		updateTooltips.forEach((item) => {
-			makeAccessibleTooltip(item, [item, 'buildings']);
-		});
-	}
-
-	if (alert && elem.innerHTML !== '' && game.options.menu.showAlerts.enabled) {
-		const alertElem = document.getElementById('buildingsAlert');
-		if (alertElem.innerHTML !== '!') alertElem.innerHTML = '!';
-	}
-
 	updateGeneratorInfo();
 }
 
-function drawBuilding(what) {
-	const alertMessage = what.alert && game.options.menu.showAlerts.enabled ? '!' : '';
-	if (usingScreenReader) {
-		return `
-			<button class="thingColorCanNotAfford thing noselect pointer buildingThing" id="${what}" onclick="buyBuilding('${what}')">
-				<span class="thingName">
-				<span id="${what}Alert" class="alert badge">${alertMessage}</span>${what}</span>, 
-				<span class="thingOwned" id="${what}Owned">${game.buildings[what].owned}</span>
-				<span class="cantAffordSR">, Not Affordable</span>
-				<span class="affordSR">, Can Buy</span>
-			</button>`;
+function drawBuilding(what, where){
+	if (usingScreenReader){
+		where.insertAdjacentHTML('beforeend', '<button class="thingColorCanNotAfford thing noselect pointer buildingThing" id="' + what + '" onclick="buyBuilding(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span>, <span class="thingOwned" id="' + what + 'Owned">' + game.buildings[what].owned + '</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
+		makeAccessibleTooltip(what, [what, "buildings"])
+		return;
 	}
-
-	return `<div onmouseover="tooltip('${what}','buildings',event)" onmouseout="tooltip('hide')" class="thingColorCanNotAfford thing noselect pointer buildingThing" id="${what}" onclick="buyBuilding('${what}')">
-			<span class="thingName">
-			<span id="${what}Alert" class="alert badge">${alertMessage}</span>${what}</span><br/>
-			<span class="thingOwned" id="${what}Owned">${game.buildings[what].owned}</span>
-		</div>`;
+	where.insertAdjacentHTML('beforeend', '<div onmouseover="tooltip(\'' + what + '\',\'buildings\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer buildingThing" id="' + what + '" onclick="buyBuilding(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span><br/><span class="thingOwned" id="' + what + 'Owned">' + game.buildings[what].owned + '</span></div>');
 }
 
 function unlockJob(what) {
@@ -5757,70 +5730,43 @@ function unlockJob(what) {
 	drawAllJobs();
 }
 
-function drawAllJobs(force) {
+function drawAllJobs(force){
 	if (usingRealTimeOffline && !force) return;
-
-	const jobs = game.jobs;
-	const elem = document.getElementById('jobsHere');
-	let innerHTML = '';
-	let updateTooltips = [];
-	let alert = false;
-	let geneticist = false;
-
-	for (const item in jobs) {
-		if (jobs[item].locked) continue;
-		if (jobs[item].alert) alert = true;
-
-		if (item === 'Geneticist' && game.global.Geneticistassist) {
-			innerHTML += drawGeneticistassist(item);
-			geneticist = true;
-		} else {
-			innerHTML += drawJob(item);
+	var elem = document.getElementById("jobsHere");
+	elem.innerHTML = "";
+	for (var item in game.jobs){
+		if (game.jobs[item].locked == 1) continue;
+		if (item == "Geneticist" && game.global.Geneticistassist){
+			drawGeneticistassist(elem);
 		}
-
-		updateTooltips.push(item);
+		else
+			drawJob(item, elem);
+		if (game.jobs[item].alert && game.options.menu.showAlerts.enabled){
+			document.getElementById("jobsAlert").innerHTML = "!";
+			if (document.getElementById(item + "Alert")) document.getElementById(item + "Alert").innerHTML = "!";
+		}
 	}
-
-	if (elem.innerHTML !== innerHTML) {
-		elem.innerHTML = innerHTML;
-		updateTooltips.forEach((item) => {
-			makeAccessibleTooltip(item, [item, 'buildings']);
-		});
-	}
-
-	if (alert && elem.innerHTML !== '' && game.options.menu.showAlerts.enabled) {
-		const alertElem = document.getElementById('jobsAlert');
-		if (alertElem.innerHTML !== '!') alertElem.innerHTML = '!';
-	}
-	if (geneticist) toggleGeneticistassist(true);
 }
 
-function drawJob(what) {
-	const alertMessage = what.alert && game.options.menu.showAlerts.enabled ? '!' : '';
-
-	if (usingScreenReader) {
-		return `
-			<button class="thingColorCanNotAfford thing noselect pointer jobThing" id="${what}" onclick="buyJob('${what}')">
-				<span class="thingName"><span id="${what}Alert" class="alert badge">${alertMessage}</span>${what}</span>, 
-				<span class="thingOwned" id="${what}Owned">0</span>
-				<span class="cantAffordSR">, Not Affordable</span>
-				<span class="affordSR">, Can Buy</span>
-			</button>`;
+function drawJob(what, where){
+	if (usingScreenReader){
+		where.insertAdjacentHTML('beforeend', '<button class="thingColorCanNotAfford thing noselect pointer jobThing" id="' + what + '" onclick="buyJob(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span>, <span class="thingOwned" id="' + what + 'Owned">0</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
+		makeAccessibleTooltip(what, [what, "jobs"])
+		return;
 	}
-	return `<div onmouseover="tooltip('${what}','jobs',event)" onmouseout="tooltip('hide')" class="thingColorCanNotAfford thing noselect pointer jobThing" id="${what}" onclick="buyJob('${what}')">
-				<span class="thingName"><span id="${what}Alert" class="alert badge">${alertMessage}</span>${what}</span><br/>
-				<span class="thingOwned" id="${what}Owned">0</span>
-			</div>`;
+	where.insertAdjacentHTML('beforeend', '<div onmouseover="tooltip(\'' + what + '\',\'jobs\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer jobThing" id="' + what + '" onclick="buyJob(\'' + what + '\')"><span class="thingName"><span id="' + what + 'Alert" class="alert badge"></span>' + what + '</span><br/><span class="thingOwned" id="' + what + 'Owned">0</span></div>');
 }
 
-function drawGeneticistassist(what) {
-	const alertMessage = what.alert && game.options.menu.showAlerts.enabled ? '!' : '';
-	if (usingScreenReader) {
-		return `<button class="thingColorCanNotAfford thing noselect pointer jobThing" id="Geneticist" onclick="buyJob('Geneticist')"><span class="thingName"><span id="GeneticistAlert" class="alert badge">${alertMessage}</span>Geneticist</span><br/><span class="thingOwned" id="GeneticistOwned">0</span></button><button class="thing noSelect pointer jobThing"  onclick="tooltip('Geneticistassist',null,'screenRead')">Geneticistassist Info</button><button onmouseover="tooltip('Geneticistassist',null,event)" onmouseout="tooltip('hide')" class="thing thingColorNone noselect stateHappy pointer jobThing" id="Geneticistassist" onclick="toggleGeneticistassist()">Geneticistassist<span id="GAIndicator"></span><br/><span id="GeneticistassistSetting">&nbsp;</span></button>`;
+function drawGeneticistassist(where){
+	if (usingScreenReader){
+		where.insertAdjacentHTML('beforeend', '<button class="thingColorCanNotAfford thing noselect pointer jobThing" id="Geneticist" onclick="buyJob(\'Geneticist\')"><span class="thingName"><span id="GeneticistAlert" class="alert badge"></span>Geneticist</span><br/><span class="thingOwned" id="GeneticistOwned">0</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button><button class="thing thingColorNone noselect stateHappy pointer jobThing" id="Geneticistassist" onclick="toggleGeneticistassist()">Geneticistassist<span id="GAIndicator"></span><br/><span id="GeneticistassistSetting">&nbsp;</span></button>');
+		makeAccessibleTooltip("Geneticist", ["Geneticist", "jobs"]) 
+		makeAccessibleTooltip("Geneticistassist", ["Geneticistassist", null]) 
+		toggleGeneticistassist(true);
+		return
 	}
-
-	return `<div id="GeneticistassistContainer" class="thing"><div onmouseover="tooltip('Geneticist','jobs',event)" onmouseout="tooltip('hide')" class="thingColorCanNotAfford thing noselect pointer jobThing" id="Geneticist" onclick="buyJob('Geneticist')"><span class="thingName"><span id="GeneticistAlert" class="alert badge">${alertMessage}</span>Geneticist</span><br/>
-	<span class="thingOwned" id="GeneticistOwned">0</span></div><div onmouseover="tooltip('Geneticistassist',null,event)" onmouseout="tooltip('hide')" class="thing thingColorNone noselect stateHappy pointer jobThing" id="Geneticistassist" onclick="toggleGeneticistassist()">Geneticistassist<span id="GAIndicator"></span><br/><span id="GeneticistassistSetting">&nbsp;</span></div></div>`;
+	where.insertAdjacentHTML('beforeend', '<div id="GeneticistassistContainer" class="thing"><div onmouseover="tooltip(\'Geneticist\',\'jobs\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer jobThing" id="Geneticist" onclick="buyJob(\'Geneticist\')"><span class="thingName"><span id="GeneticistAlert" class="alert badge"></span>Geneticist</span><br/><span class="thingOwned" id="GeneticistOwned">0</span></div><div onmouseover="tooltip(\'Geneticistassist\',null,event)" onmouseout="tooltip(\'hide\')" class="thing thingColorNone noselect stateHappy pointer jobThing" id="Geneticistassist" onclick="toggleGeneticistassist()">Geneticistassist<span id="GAIndicator"></span><br/><span id="GeneticistassistSetting">&nbsp;</span></div></div>');
+	toggleGeneticistassist(true);
 }
 
 function refreshMaps(){
@@ -5938,76 +5884,44 @@ function unlockUpgrade(what, displayOnly) {
 	drawAllUpgrades();
 }
 
-function drawAllUpgrades(force) {
-	if (usingRealTimeOffline && !force) {
-		goldenUpgradesShown = true;
-		displayGoldenUpgrades();
-		return;
+function drawAllUpgrades(){
+	if (usingRealTimeOffline) return;
+	var elem = document.getElementById("upgradesHere");
+	elem.innerHTML = "";
+	for (var item in game.upgrades){
+		if (game.upgrades[item].locked == 1) continue;
+		drawUpgrade(item, elem);
+		if (game.upgrades[item].alert && game.options.menu.showAlerts.enabled){
+			document.getElementById("upgradesAlert").innerHTML = "!";
+			if (document.getElementById(item + "Alert")) document.getElementById(item + "Alert").innerHTML = "!";
+		}
 	}
-
-	const upgrades = game.upgrades;
-	const elem = document.getElementById('upgradesHere');
-	let innerHTML = '';
-	let updateTooltips = [];
-	let alert = false;
-
-	for (const item in upgrades) {
-		if (upgrades[item].locked) continue;
-		if (upgrades[item].alert) alert = true;
-		innerHTML += drawUpgrade(item);
-		updateTooltips.push(item);
-	}
-
-	if (elem.innerHTML !== innerHTML) {
-		elem.innerHTML = innerHTML;
-		updateTooltips.forEach((item) => {
-			makeAccessibleTooltip(item, [item, 'buildings']);
-		});
-	}
-
-	if (alert && elem.innerHTML !== '' && game.options.menu.showAlerts.enabled) {
-		const alertElem = document.getElementById('upgradesAlert');
-		if (alertElem.innerHTML !== '!') alertElem.innerHTML = '!';
-	}
-
 	goldenUpgradesShown = false;
 	displayGoldenUpgrades();
 }
 
-function drawUpgrade(what) {
-	const alertMessage = what.alert && game.options.menu.showAlerts.enabled ? '!' : '';
-	const upgrade = game.upgrades[what];
 
-	if (upgrade.prestiges && (!upgrade.cost.resources[metal] || !upgrade.cost.resources[wood])) {
-		const resName = what === 'Supershield' ? 'wood' : 'metal';
+
+function drawUpgrade(what, where){
+	var upgrade = game.upgrades[what];
+	if (upgrade.prestiges && (!upgrade.cost.resources[metal] || !upgrade.cost.resources[wood])){
+		var resName = (what == "Supershield") ? "wood" : "metal";
 		upgrade.cost.resources[resName] = getNextPrestigeCost(what);
 	}
-
-	let done = upgrade.done;
-	let dif = upgrade.allowed - done - 1;
-	let name = typeof upgrade.name !== 'undefined' ? upgrade.name : what;
-	let html;
-
+	var done = upgrade.done;
+	var dif = upgrade.allowed - done;
+	if (dif >= 1) dif -= 1;
+	var name = what;
+	if (typeof upgrade.name !== 'undefined') name = upgrade.name;
 	if (upgrade.isRelic) done = game.challenges.Archaeology.getPoints(upgrade.relic);
-	else if (dif >= 1) done += `(+${dif})`;
-
-	if (usingScreenReader) {
-		html = `<button class="thingColorCanNotAfford thing noselect pointer upgradeThing" id="${what}" onclick="buyUpgrade('${what}')">
-				<span id="${what}Alert" class="alert badge">${alertMessage}</span>
-				<span class="thingName">${name}</span>, 
-				<span class="thingOwned" id="${what}Owned">${done}</span>
-				<span class="cantAffordSR">, Not Affordable</span>
-				<span class="affordSR">, Can Buy</span>
-			</button>`;
-	} else {
-		html = `<div onmouseover="tooltip('${what}','upgrades',event)" onmouseout="tooltip('hide')" class="thingColorCanNotAfford thing noselect pointer upgradeThing" id="${what}" onclick="buyUpgrade('${what}')">
-			<span id="${what}Alert" class="alert badge">${alertMessage}</span>
-			<span class="thingName">${name}</span><br/>
-			<span class="thingOwned" id="${what}Owned">${done}</span>
-		</div>`;
+	if (usingScreenReader){
+		where.insertAdjacentHTML("beforeend", '<button class="thingColorCanNotAfford thing noselect pointer upgradeThing" id="' + what + '" onclick="buyUpgrade(\'' + what + '\')"><span id="' + what + 'Alert" class="alert badge"></span><span class="thingName">' + name + '</span>, <span class="thingOwned" id="' + what + 'Owned">' + done + '</span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
+		makeAccessibleTooltip(what, [what, "upgrades"]) 
 	}
-
-	return html;
+	else{
+		where.insertAdjacentHTML("beforeend", '<div onmouseover="tooltip(\'' + what + '\',\'upgrades\',event)" onmouseout="tooltip(\'hide\')" class="thingColorCanNotAfford thing noselect pointer upgradeThing" id="' + what + '" onclick="buyUpgrade(\'' + what + '\')"><span id="' + what + 'Alert" class="alert badge"></span><span class="thingName">' + name + '</span><br/><span class="thingOwned" id="' + what + 'Owned">' + done + '</span></div>');
+	}
+	if (!upgrade.isRelic && dif >= 1) document.getElementById(what + "Owned").innerHTML = upgrade.done + "(+" + dif + ")";
 }
 
 function checkButtons(what) {
@@ -6137,49 +6051,29 @@ function unlockEquipment(what, fromCheck) {
 	}
 }
 
-function drawAllEquipment(force) {
-	if (usingRealTimeOffline && !force) return;
-
-	const equipment = game.equipment;
-	const elem = document.getElementById('equipmentHere');
-	let innerHTML = '';
-	let updateTooltips = [];
-
-	for (const item in equipment) {
-		if (equipment[item].locked) continue;
-		innerHTML += drawEquipment(item);
-		updateTooltips.push(item);
+function drawAllEquipment(){
+	if (usingRealTimeOffline) return;
+	var elem = document.getElementById("equipmentHere");
+	elem.innerHTML = "";
+	for (var item in game.equipment){
+		if (game.equipment[item].locked == 1) continue;
+		drawEquipment(item, elem);
 	}
-
-	if (elem.innerHTML !== innerHTML) {
-		elem.innerHTML = innerHTML;
-		updateTooltips.forEach((item) => {
-			makeAccessibleTooltip(item, [item, 'buildings']);
-		});
-	}
-
 	displayEfficientEquipment();
 }
 
-function drawEquipment(what) {
-	let numeral = '';
-	let equipment = game.equipment[what];
-	if (equipment.prestige > 1) numeral = usingScreenReader ? prettify(equipment.prestige) : romanNumeral(equipment.prestige);
-
-	if (usingScreenReader) {
-		return `
-			<button class="noselect pointer thingColorCanNotAfford thing" id="${what}" onclick="buyEquipment('${what}')">
-				<span class="thingName">${what} <span id="${what}Numeral">${numeral}</span></span>, 
-				<span class="thingOwned">Level: <span id="${what}Owned">${equipment.level}</span></span>
-				<span class="cantAffordSR">, Not Affordable</span>
-				<span class="affordSR">, Can Buy</span>
-			</button>`;
+function drawEquipment(what, elem){
+	var numeral = "";
+	var equipment = game.equipment[what];
+	if (equipment.prestige > 1){
+		numeral = (usingScreenReader) ? prettify(equipment.prestige) : romanNumeral(equipment.prestige);
 	}
-	return `<div 
-				onmouseover="tooltip('${what}','equipment',event)" onmouseout="tooltip('hide')" class="efficientNo noselect pointer thingColorCanNotAfford thing" id="${what}" onclick="buyEquipment('${what}')">
-				<span class="thingName">${what} <span id="${what}Numeral">${numeral}</span></span><br/>
-				<span class="thingOwned">Level: <span id="${what}Owned">${equipment.level}</span></span>
-			</div>`;
+	if (usingScreenReader){
+		elem.insertAdjacentHTML("beforeend", '<button class="noselect pointer thingColorCanNotAfford thing" id="' + what + '" onclick="buyEquipment(\'' + what + '\')"><span class="thingName">' + what + ' <span id="' + what + 'Numeral">' + numeral + '</span></span>, <span class="thingOwned">Level: <span id="' + what + 'Owned">0</span></span><span class="cantAffordSR">, Not Affordable</span><span class="affordSR">, Can Buy</span></button>');
+		makeAccessibleTooltip(what, [what, "equipment"])
+		return;
+	}
+	elem.insertAdjacentHTML("beforeend", '<div onmouseover="tooltip(\'' + what + '\',\'equipment\',event)" onmouseout="tooltip(\'hide\')" class="efficientNo noselect pointer thingColorCanNotAfford thing" id="' + what + '" onclick="buyEquipment(\'' + what + '\')"><span class="thingName">' + what + ' <span id="' + what + 'Numeral">' + numeral + '</span></span><br/><span class="thingOwned">Level: <span id="' + what + 'Owned">0</span></span></div>');
 }
 
 //isPrevious returns the previous color, used for swapping with str.replace to know which one was before
