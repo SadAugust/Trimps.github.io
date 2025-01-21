@@ -2011,7 +2011,8 @@ function getScientistLevel() {
 function getScientistInfo(number, reward){
 	switch (number){
 		case 1: {
-			return (reward) ? "start with 5000 Science, 100 Food, 100 Wood, 10 Traps, and 1 Foreman" : 11500;
+			const foreman = game.global.universe === 1 || !bwRewardUnlocked('Foremany') ? `, and 1 Foreman` : ``;
+			return reward ? `start with 5000 Science, 100 Food, 100 Wood, 10 Traps${foreman}` : 11500;
 		}
 		case 2: {
 			return (reward) ? "start with 5 Barns, 5 Sheds, 5 Forges, and T2 Equipment unlocked" : 8000;
@@ -2305,15 +2306,18 @@ function viewPortalUpgrades() {
 	u2Mutations.toggleRespec(false, true);
 }
 
-function screwThisUniverse(confirmed){
-	if (!confirmed){
-		tooltip('confirm', null, 'update', 'Are you sure you want to return to Universe 1? You will lose any Radon and Scruffy Exp earned so far.', 'screwThisUniverse(true)', 'Abandon Scruffy', 'I\'m sure he\'ll be fine');
+function screwThisUniverse(confirmed) {
+	if (!confirmed) {
+		tooltip('confirm', null, 'update', 'Are you sure you want to return to Universe 1? You will lose any Radon and Scruffy Exp earned so far.', 'screwThisUniverse(true)', 'Abandon Scruffy', "I'm sure he'll be fine");
 		return;
 	}
+
 	game.global.totalRadonEarned -= game.resources.radon.owned;
 	game.resources.radon.owned = 0;
 	game.global.fluffyExp2 -= Fluffy.getBestExpStat().value;
 	Fluffy.getBestExpStat().value = 0;
+	portalClicked();
+	swapPortalUniverse();
 	portalUniverse = 1;
 	resetGame(true);
 	checkEquipPortalHeirlooms();
@@ -3957,15 +3961,23 @@ function checkHandleResourcefulRespec(){
 	if (getPerkLevel("Resourceful") > game.portal.Resourceful.levelTemp) clearQueue();
 }
 
-function clearQueue(specific) {
-	var existing = 0;
-	for (var x = 0; x < game.global.nextQueueId; x++){
-		if (!document.getElementById("queueItem" + x)) continue;
+function clearQueue(specific = false) {
+	if (!specific) game.global.clearingBuildingQueue = true;
+	let existing = 0;
+
+	for (let x = 0; x < game.global.nextQueueId; x++) {
+		const queueItem = document.getElementById(`queueItem${x}`);
+		if (!queueItem) continue;
+
 		existing++;
-		if (specific && game.global.buildingsQueue[existing - 1].split('.')[0] != specific) continue;
+
+		if (specific && game.global.buildingsQueue[existing - 1].split('.')[0] !== specific) continue;
 		else existing--;
-		removeQueueItem("queueItem" + x, true);
+
+		removeQueueItem(`queueItem${x}`, true);
 	}
+
+	game.global.clearingBuildingQueue = false;
 }
 
 function activatePortal(){
@@ -5442,9 +5454,10 @@ function canAffordCoordinationTrimps(){
 	return (game.resources.trimps.realMax() >= (game.resources.trimps.getCurrentSend() * 3))
 }
 
+
 function buyUpgrade(what, confirmed, noTip, heldCtrl) {
 	if (game.options.menu.pauseGame.enabled) return;
-	if (!confirmed && !noTip && game.options.menu.lockOnUnlock.enabled == 1 && (new Date().getTime() - 1000 <= game.global.lastUnlock)) return;
+	if (!confirmed && !noTip && game.options.menu.lockOnUnlock.enabled == 1 && !usingRealTimeOffline && (new Date().getTime() - 1000 <= game.global.lastUnlock)) return;
     if (what == "Coordination") {
        if (!canAffordCoordinationTrimps()) return false;
     }
@@ -5876,29 +5889,58 @@ function testGymystic(oldPercent) {
 
 }
 
-function prestigeEquipment(what, fromLoad, noInc) {
-    var equipment = game.equipment[what];
+function prestigeEquipment(what, fromLoad = false, noInc = false) {
+	const equipment = game.equipment[what];
 	if (!fromLoad && !noInc) equipment.prestige++;
-	var resource = (what == "Shield") ? "wood" : "metal";
-	var cost = equipment.cost[resource];
-	var prestigeMod = 0;
-	if (equipment.prestige >= 4) prestigeMod = (((equipment.prestige - 3) * 0.85) + 2);
-	else prestigeMod = (equipment.prestige - 1);
-    cost[0] = Math.round(equipment.oc * Math.pow(1.069, ((prestigeMod) * game.global.prestige.cost) + 1));
-	var stat;
-	if (equipment.blockNow) stat = "block";
-	else stat = (typeof equipment.health !== 'undefined') ? "health" : "attack";
-	if (!fromLoad) game.global[stat] -= (equipment[stat + "Calculated"] * equipment.level);
-	if (!fromLoad) game.global.difs[stat] -= (equipment[stat + "Calculated"] * equipment.level);
-    equipment[stat + "Calculated"] = Math.round(equipment[stat] * Math.pow(1.19, ((equipment.prestige - 1) * game.global.prestige[stat]) + 1));
-	//No need to touch level if it's newNum
+
+	const prestigeMod = equipment.prestige >= 4 ? (equipment.prestige - 3) * 0.85 + 2 : equipment.prestige - 1;
+	const resource = what === 'Shield' ? 'wood' : 'metal';
+	const cost = equipment.cost[resource];
+	cost[0] = Math.round(equipment.oc * Math.pow(1.069, prestigeMod * game.global.prestige.cost + 1));
+
+	const stat = equipment.blockNow ? 'block' : typeof equipment.health !== 'undefined' ? 'health' : 'attack';
+	if (!fromLoad) game.global[stat] -= equipment[stat + 'Calculated'] * equipment.level;
+	if (!fromLoad) game.global.difs[stat] -= equipment[stat + 'Calculated'] * equipment.level;
+	equipment[stat + 'Calculated'] = Math.round(equipment[stat] * Math.pow(1.19, (equipment.prestige - 1) * game.global.prestige[stat] + 1));
+
+	// No need to touch level if it's newNum
 	if (fromLoad) return;
 	equipment.level = 0;
-	if (!noInc && !fromLoad) levelEquipment(what, 1);
-	var numeral = (usingScreenReader) ? prettify(equipment.prestige) : romanNumeral(equipment.prestige);
-    if (document.getElementById(what + "Numeral") !== null) document.getElementById(what + "Numeral").innerHTML = numeral;
+	if (!noInc) levelEquipment(what, 1);
+	if (game.global[stat] <= 0) game.global[stat] = calcBaseStats(stat);
+
+	const numeral = usingScreenReader ? prettify(equipment.prestige) : romanNumeral(equipment.prestige);
+	const equipElem = document.getElementById(`${what}Numeral`);
+	if (equipElem !== null) equipElem.innerHTML = numeral;
+
 	displayEfficientEquipment();
 }
+
+function calcBaseStats(equipType = 'attack') {
+	const equipmentTypes = {
+		attack: ['Dagger', 'Mace', 'Polearm', 'Battleaxe', 'Greatsword', 'Arbalest'],
+		health: ['Shield', 'Boots', 'Helmet', 'Pants', 'Shoulderguards', 'Breastplate', 'Gambeson'],
+		block: game.equipment.Shield.blockNow ? ['Shield'] : []
+	};
+
+	const bonusValues = {
+		attack: 6,
+		health: 50,
+		block: 0
+	};
+
+	let bonus = bonusValues[equipType] || 0;
+	let equipmentList = equipmentTypes[equipType] || [];
+
+	for (let i = 0; i < equipmentList.length; i++) {
+		const equip = game.equipment[equipmentList[i]];
+		if (equip.locked || (equip.blockNow && equipType === 'health')) continue;
+		bonus += equip[equipType + 'Calculated'] * equip.level;
+	}
+
+	return bonus;
+}
+	
 
 function getNextPrestigeCost(what){
 	var equipment = game.equipment[game.upgrades[what].prestiges];
@@ -7951,9 +7993,12 @@ function createHeirloom(zone, fromBones, spireCore, forceBest){
 	if (game.global.universe == 2 && u2Mutations.tree.Nullifium.purchased) buildHeirloom.nuMod *= 1.1;
 	buildHeirloom.nuMod *= u2SpireBonuses.nullifium();
 	game.global.heirloomsExtra.push(buildHeirloom);
-	if (game.options.menu.voidPopups.enabled != 2 || type == "Core" || (getHeirloomRarityRanges(zone, fromBones).length == (rarity + 1))){
-		displaySelectedHeirloom(false, 0, false, "heirloomsExtra", game.global.heirloomsExtra.length - 1, true);
+
+	const displayCores = type === 'Core' && rarity >= game.global.spiresCompleted - 1;
+	if (game.options.menu.voidPopups.enabled !== 2 || displayCores || getHeirloomRarityRanges(zone, fromBones).length === rarity + 1) {
+		displaySelectedHeirloom(false, 0, false, 'heirloomsExtra', game.global.heirloomsExtra.length - 1, true);
 	}
+	
 	if ((game.stats.totalHeirlooms.value + game.stats.totalHeirlooms.valueTotal) == 0) document.getElementById("heirloomBtnContainer").style.display = "block";
 	game.stats.totalHeirlooms.value++;
 	checkAchieve("totalHeirlooms");
@@ -10796,14 +10841,17 @@ function mapsSwitch(updateOnly, fromRecycle) {
 	document.getElementById("mapsBtn").className = "btn btn-warning fightBtn";
 	document.getElementById('togglemapAtZone2').style.display = (game.global.canMapAtZone) ? "block" : "none";
     if (game.global.preMapsActive) {
-		//Switching to Map Chamber
+		// Switching to Map Chamber.
 		refreshMaps();
 		game.global.mazBw = -1;
 		if (currentMapObj && (currentMapObj.location == "Void" || currentMapObj.location == "Darkness")) {
 			recycleMap(-1, true, true);
 			currentMapObj = false;
 		}
-		game.global.mapCounterGoal = 0;
+		if (game.global.mapCounterGoal > 0) {
+			game.global.mapCounterGoal = 0;
+			toggleSetting('repeatUntil', null, false, true);
+		}
 		game.global.mapsActive = false;
 		setNonMapBox();
 		document.getElementById("battleHeadContainer").style.display = "none";
@@ -10962,7 +11010,7 @@ function selectMap(mapId, force) {
 	document.getElementById("recycleMapBtn").style.visibility = (map.noRecycle) ? "hidden" : "visible";
 }
 
-function runMap() {
+function runMap(resetCounter = true) {
 	if (game.options.menu.pauseGame.enabled) return;
     if (game.global.lookingAtMap === "") return;
 	if (challengeActive("Watch")) game.challenges.Watch.enteredMap = true;
@@ -10989,7 +11037,7 @@ function runMap() {
     game.global.preMapsActive = false;
     game.global.mapsActive = true;
 	game.global.currentMapId = mapId;
-	game.global.mapRunCounter = 0;
+	if (resetCounter) game.global.mapRunCounter = 0;
 	mapsSwitch(true);
 	var mapObj = getCurrentMapObject();
 	if (mapObj.bonus){
@@ -14139,6 +14187,10 @@ function displayGoldenUpgrades(redraw) {
 	if (goldenUpgradesShown && !redraw) return false;
 	if (getAvailableGoldenUpgrades() <= 0) return false;
 	if (!goldenUpgradesShown) game.global.lastUnlock = new Date().getTime();
+
+	const elem = document.getElementById('upgradesHere');
+	if (elem && elem.children[0] && elem.children[0].id.includes('Golden')) return false;
+
 	var html = "";
 	for (var item in game.goldenUpgrades){
 		var upgrade = game.goldenUpgrades[item];
@@ -14159,7 +14211,7 @@ function displayGoldenUpgrades(redraw) {
 			html += '<div onmouseover="tooltip(\'' + item + '\', \'goldenUpgrades\', event)" onmouseout="tooltip(\'hide\')" class="' + color + ' thing goldenUpgradeThing noselect pointer upgradeThing" id="' + item + 'Golden" onclick="buyGoldenUpgrade(\'' + item + '\'); tooltip(\'hide\')"><span class="thingName">Golden ' + displayName + ' ' + romanNumeral(game.global.goldenUpgrades + 1) + '</span><br/><span class="thingOwned" id="golden' + item + 'Owned">' + upgrade.purchasedAt.length + '</span></div>';
 		}
 	}
-	var elem = document.getElementById('upgradesHere');
+	
 	elem.innerHTML =  html + elem.innerHTML;
 	goldenUpgradesShown = true;
 	return true;
@@ -16361,13 +16413,15 @@ function getPlayerCritChance(){ //returns decimal: 1 = 100%
 	return critChance;
 }
 
-function getPlayerCritDamageMult(){
-	var relentLevel = getPerkLevel("Relentlessness");
-	var critMult = (((game.portal.Relentlessness.otherModifier * relentLevel) + (getHeirloomBonus("Shield", "critDamage") / 100)) + 1);
-	critMult += (getPerkLevel("Criticality") * game.portal.Criticality.modifier);
+function getPlayerCritDamageMult() {
+	const relentLevel = getPerkLevel('Relentlessness');
+	const eoaEffect = alchObj.getPotionEffect('Elixir of Accuracy');
+
+	let critMult = game.portal.Relentlessness.otherModifier * relentLevel + getHeirloomBonus('Shield', 'critDamage') / 100 + 1;
+	critMult += getPerkLevel('Criticality') * game.portal.Criticality.modifier;
 	if (relentLevel > 0) critMult += 1;
 	if (game.challenges.Nurture.boostsActive() && game.challenges.Nurture.getLevel() >= 5) critMult += 0.5;
-	critMult += alchObj.getPotionEffect("Elixir of Accuracy");
+	/* if (eoaEffect > 1) */ critMult += eoaEffect;
 	return critMult;
 }
 
