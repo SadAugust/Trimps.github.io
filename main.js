@@ -16284,12 +16284,12 @@ function fight(makeUp) {
 
 	if (game.global.soldierHealth > 0) {
 		game.global.armyAttackCount++;
-	} else if (game.portal.Equality.scalingActive && game.global.armyAttackCount <= game.portal.Equality.scalingSetting) {
+	} else if (game.portal.Equality.getSetting('scalingActive') && game.global.armyAttackCount <= game.portal.Equality.getSetting('scalingSetting')) {
 		game.portal.Equality.scalingCount++;
 		manageEqualityStacks();
 	}
 
-	if (game.global.fightAttackCount > 0 && game.portal.Equality.scalingActive && game.portal.Equality.scalingReverse && game.global.fightAttackCount % game.portal.Equality.reversingSetting === 0 && game.global.armyAttackCount > game.portal.Equality.scalingSetting && cell.health > 0) {
+	if (game.global.fightAttackCount > 0 && game.portal.Equality.getSetting('scalingActive') && game.portal.Equality.getSetting('scalingReverse') && game.global.fightAttackCount % game.portal.Equality.getSetting('reversingSetting') === 0 && game.global.armyAttackCount > game.portal.Equality.getSetting('scalingSetting') && cell.health > 0) {
 		game.portal.Equality.scalingCount--;
 		manageEqualityStacks();
 	}
