@@ -5178,6 +5178,7 @@ var u2Mutations = {
             reward *= (1 + (getDailyHeliumValue(countDailyWeight()) / 100));
         }
         if (Fluffy.isRewardActive("bigSeeds")) reward *= 10;
+        reward *= u2SpireBonuses.seedDrop();
         reward = calcHeirloomBonus("Staff", "SeedDrop", reward);
         game.global.mutatedSeeds += reward;
         if (typeof game.global.messages.Loot.seeds === 'undefined') game.global.messages.Loot.seeds = true;
